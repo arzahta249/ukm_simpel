@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { EventCard } from "@/components/event-card";
+import { Reveal } from "@/components/reveal";
 import { readDb } from "@/lib/db";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Periode Penerimaan Naskah" };
 export const dynamic = "force-dynamic";
@@ -12,40 +14,37 @@ export default async function EventsPage({ searchParams }: PageProps<"/events">)
 
   const db = await readDb();
   const filtered = catFilter ? db.events.filter((e) => e.category_id === catFilter) : db.events;
+  const catName = (id: number) => db.categories.find((c) => c.id === id)?.nama;
+
+  const chip = (active: boolean) =>
+    cn(
+      "rounded-full px-4 py-2 text-xs font-bold transition-colors",
+      active
+        ? "bg-forest-900 text-white shadow-soft"
+        : "border border-line-strong bg-sheet text-ink hover:border-forest-600 hover:bg-forest-50",
+    );
 
   return (
     <>
-      <section className="border-b border-line-strong bg-sheet py-12 sm:py-16">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <p className="eyebrow">JADWAL &amp; EDISI PENERBITAN</p>
-          <h1 className="mt-2 max-w-3xl text-3xl font-semibold leading-tight text-forest-950 sm:text-5xl">
-            Periode Penerimaan Karya Tulis Ilmiah
+      <section className="relative overflow-hidden py-12 sm:py-16">
+        <div aria-hidden className="bg-dots absolute inset-0 opacity-60 [mask-image:radial-gradient(ellipse_at_top,black_20%,transparent_70%)]" />
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <p className="eyebrow rise">Periode penerimaan</p>
+          <h1 className="rise mt-2 max-w-3xl text-4xl font-semibold leading-tight text-forest-950 sm:text-6xl" style={{ animationDelay: "80ms" }}>
+            Pilih periode, lalu kirim tulisanmu.
           </h1>
-          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted sm:text-base">
-            Daftar edisi publikasi dan periode pengumpulan naskah ilmiah UKM SIMPEL. Pilih periode yang sedang dibuka untuk melihat cakupan tema, batas halaman, kriteria telaah, dan mengunggah karya Anda.
+          <p className="rise mt-4 max-w-2xl text-sm leading-relaxed text-muted sm:text-base" style={{ animationDelay: "160ms" }}>
+            Setiap periode punya tema, batas halaman, dan tenggat sendiri. Baca dulu ketentuannya, lalu unggah naskahmu.
           </p>
 
-          <div className="mt-7 flex flex-wrap gap-2">
-            <Link
-              href="/events"
-              className={`rounded-md px-3.5 py-1.5 font-mono text-xs font-semibold ${
-                !catFilter ? "bg-forest-900 text-white" : "border border-line-strong bg-paper text-ink hover:border-forest-700"
-              }`}
-            >
-              Semua Periode ({db.events.length})
+          <div className="rise mt-7 flex flex-wrap gap-2" style={{ animationDelay: "240ms" }}>
+            <Link href="/events" className={chip(!catFilter)}>
+              Semua ({db.events.length})
             </Link>
             {db.categories
               .filter((c) => c.is_active)
               .map((c) => (
-                <Link
-                  key={c.id}
-                  href={`/events?kategori=${c.id}`}
-                  className={`rounded-md px-3.5 py-1.5 font-mono text-xs font-semibold ${
-                    catFilter === c.id
-                      ? "bg-forest-900 text-white"
-                      : "border border-line-strong bg-paper text-ink hover:border-forest-700"
-                  }`}
-                >
+                <Link key={c.id} href={`/events?kategori=${c.id}`} className={chip(catFilter === c.id)}>
                   {c.nama}
                 </Link>
               ))}
@@ -53,12 +52,23 @@ export default async function EventsPage({ searchParams }: PageProps<"/events">)
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((e) => (
-            <EventCard key={e.id} event={e} />
-          ))}
-        </div>
+      <section className="mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8">
+        {filtered.length > 0 ? (
+          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+            {filtered.map((e, i) => (
+              <Reveal key={e.id} delay={(i % 3) * 80}>
+                <EventCard event={e} categoryName={catName(e.category_id)} />
+              </Reveal>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-3xl border border-dashed border-line-strong bg-sheet p-12 text-center">
+            <p className="text-lg font-semibold text-forest-950">Belum ada periode untuk jenis naskah ini</p>
+            <Link href="/events" className="btn btn-outline mt-4">
+              Lihat semua periode
+            </Link>
+          </div>
+        )}
       </section>
     </>
   );

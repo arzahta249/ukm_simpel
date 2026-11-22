@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Check } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { BookMascot } from "@/components/book-mascot";
 
 export default function AuthLayout({ children }: LayoutProps<"/">) {
   return (
@@ -11,7 +12,10 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
           <Logo light size={36} subtitle="Repositori Karya Tulis Ilmiah" />
         </div>
 
-        <div className="my-auto py-12">
+        <div className="my-auto py-10">
+          <div className="-mb-2 max-w-[250px]">
+            <BookMascot showBubble={false} />
+          </div>
           <p className="font-mono text-xs uppercase tracking-widest text-gold-300">
             PORTAL PENULIS &amp; REDAKSI
           </p>

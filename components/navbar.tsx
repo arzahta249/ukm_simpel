@@ -11,7 +11,7 @@ const links = [
   { href: "/", label: "Beranda" },
   { href: "/#katalog", label: "Karya Terbit" },
   { href: "/events", label: "Periode Unggah" },
-  { href: "/#alur", label: "Prosedur & Kurasi" },
+  { href: "/#alur", label: "Cara Kerja" },
   { href: "/#panduan", label: "FAQ" },
 ];
 
@@ -20,9 +20,9 @@ export function Navbar() {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-50 border-b border-forest-800 bg-forest-950 text-white">
-      <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Logo light size={38} subtitle="Repositori Karya Ilmiah" />
+    <header className="sticky top-0 z-50 px-3 pt-3 sm:px-4">
+      <nav className="relative mx-auto flex h-14 max-w-7xl items-center justify-between rounded-2xl border border-white/10 bg-forest-950/95 px-3 shadow-pop backdrop-blur-xl sm:h-16 sm:px-5">
+        <Logo light size={36} subtitle="Repositori Karya Ilmiah" />
 
         <ul className="hidden items-center gap-1 lg:flex">
           {links.map((l) => {
@@ -32,7 +32,7 @@ export function Navbar() {
                 <Link
                   href={l.href}
                   className={cn(
-                    "rounded-md px-3.5 py-2 text-sm font-medium transition-colors",
+                    "rounded-xl px-3.5 py-2 text-sm font-semibold transition-colors",
                     active ? "bg-white/10 text-gold-300" : "text-forest-100/85 hover:bg-white/5 hover:text-white",
                   )}
                 >
@@ -54,39 +54,46 @@ export function Navbar() {
 
         <button
           onClick={() => setOpen((o) => !o)}
-          className="flex size-10 items-center justify-center rounded-md border border-white/15 text-white lg:hidden"
-          aria-label="Toggle navigasi"
+          className="flex size-10 items-center justify-center rounded-xl border border-white/15 text-white transition-colors hover:bg-white/10 lg:hidden"
+          aria-label="Buka atau tutup menu"
+          aria-expanded={open}
         >
           {open ? <X className="size-5" /> : <Menu className="size-5" />}
         </button>
-      </nav>
 
-      {open && (
-        <div className="border-t border-white/10 bg-forest-950 px-4 pb-5 pt-3 lg:hidden">
-          <ul className="space-y-1">
-            {links.map((l) => (
-              <li key={l.href}>
-                <Link
-                  href={l.href}
-                  onClick={() => setOpen(false)}
-                  className="flex items-center justify-between rounded-md px-3 py-2.5 text-sm font-medium text-forest-100 hover:bg-white/5"
-                >
-                  {l.label}
-                  <ArrowUpRight className="size-4 text-forest-400" />
-                </Link>
-              </li>
-            ))}
-          </ul>
-          <div className="mt-4 grid grid-cols-2 gap-2 border-t border-white/10 pt-4">
-            <Link href="/login" onClick={() => setOpen(false)} className="btn btn-ghost-light">
-              Masuk
-            </Link>
-            <Link href="/dashboard/submit" onClick={() => setOpen(false)} className="btn btn-gold">
-              <FileUp className="size-4" /> Unggah Naskah
-            </Link>
+        {open && (
+          <div className="rise absolute inset-x-0 top-[calc(100%+0.5rem)] rounded-2xl border border-white/10 bg-forest-950 p-3 shadow-pop lg:hidden">
+            <ul className="space-y-1">
+              {links.map((l) => {
+                const active = l.href === pathname;
+                return (
+                  <li key={l.href}>
+                    <Link
+                      href={l.href}
+                      onClick={() => setOpen(false)}
+                      className={cn(
+                        "flex items-center justify-between rounded-xl px-4 py-3 text-[15px] font-semibold transition-colors",
+                        active ? "bg-white/10 text-gold-300" : "text-forest-100 hover:bg-white/5",
+                      )}
+                    >
+                      {l.label}
+                      <ArrowUpRight className="size-4 text-forest-400" />
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+            <div className="mt-3 grid grid-cols-2 gap-2 border-t border-white/10 pt-3">
+              <Link href="/login" onClick={() => setOpen(false)} className="btn btn-ghost-light">
+                Masuk
+              </Link>
+              <Link href="/dashboard/submit" onClick={() => setOpen(false)} className="btn btn-gold">
+                <FileUp className="size-4" /> Unggah
+              </Link>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </nav>
     </header>
   );
 }

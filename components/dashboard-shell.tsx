@@ -220,8 +220,59 @@ export function DashboardShell({
           </div>
         </header>
 
-        <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">{children}</main>
+        <main
+          className={cn(
+            "mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8",
+            !isAdmin && "max-lg:pb-28!",
+          )}
+        >
+          {children}
+        </main>
       </div>
+
+      {/* Navigasi bawah khusus ponsel (portal penulis) */}
+      {!isAdmin && (
+        <nav
+          aria-label="Navigasi utama"
+          className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-sheet/95 px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1.5 backdrop-blur-xl lg:hidden"
+        >
+          <ul className="mx-auto grid max-w-md grid-cols-4 items-end">
+            {[
+              { href: "/dashboard", label: "Ringkasan", icon: LayoutDashboard, exact: true },
+              { href: "/dashboard/submit", label: "Unggah", icon: Send, raised: true },
+              { href: "/dashboard/karya", label: "Naskah", icon: FileStack },
+              { href: "/dashboard/profil", label: "Profil", icon: UserCircle },
+            ].map((item) => {
+              const Icon = item.icon;
+              const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
+              return (
+                <li key={item.href} className="flex justify-center">
+                  <Link
+                    href={item.href}
+                    className={cn(
+                      "flex flex-col items-center gap-0.5 text-[11px] font-bold transition-colors",
+                      item.raised ? "-mt-6" : "py-1.5",
+                      active ? "text-forest-800" : "text-muted",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "flex items-center justify-center rounded-2xl transition-transform active:scale-90",
+                        item.raised
+                          ? "size-14 bg-gradient-to-b from-forest-700 to-forest-900 text-gold-300 shadow-pop ring-4 ring-paper"
+                          : cn("h-8 w-12", active && "bg-forest-100"),
+                      )}
+                    >
+                      <Icon className={item.raised ? "size-6" : "size-5"} />
+                    </span>
+                    {item.label}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+      )}
     </div>
   );
 }
