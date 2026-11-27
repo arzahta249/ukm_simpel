@@ -36,10 +36,20 @@ export interface EventItem {
   deskripsi: string;
   deadline: string;
   max_halaman: number;
+  halaman_label?: string;
   max_anggota: number;
   status: EventStatus;
   volume: string;
   peserta: number;
+}
+
+export function formatEventPages(
+  event?: Pick<EventItem, "max_halaman" | "halaman_label"> | null,
+  unit: "hlm" | "halaman" = "hlm",
+): string {
+  if (!event) return `15 ${unit}`;
+  if (event.halaman_label) return `${event.halaman_label} ${unit}`;
+  return `${event.max_halaman} ${unit}`;
 }
 
 export interface Criteria {
@@ -60,13 +70,32 @@ export interface User {
   created_at: string;
 }
 
+export interface EssayBody {
+  pendahuluan: string;
+  metode_penelitian?: string;
+  hasil_pembahasan?: string;
+  pembahasan: string;
+  kesimpulan: string;
+  daftar_pustaka?: string;
+}
+
 export interface Submission {
   id: number;
   event_id: number;
   user_id: string;
   judul: string;
+  subjudul?: string;
+  topik?: string;
+  jenis_riset?: string;
   abstrak: string;
+  cover_image?: string;
   kata_kunci: string;
+  prodi?: string;
+  bio?: string;
+  isi_essay?: EssayBody;
+  visibilitas?: "publik" | "privat";
+  persetujuan_publikasi?: boolean;
+  pernyataan_orisinalitas?: boolean;
   status: SubmissionStatus;
   skor_akhir: number | null;
   submitted_at: string;
@@ -131,7 +160,7 @@ export const STATUS_META: Record<SubmissionStatus, { label: string; className: s
 };
 
 export const EVENT_STATUS_META: Record<EventStatus, { label: string; className: string }> = {
-  draft: { label: "Draft Redaksi", className: "bg-stone-100 text-stone-700 ring-stone-300" },
+  draft: { label: "Draft Editor", className: "bg-stone-100 text-stone-700 ring-stone-300" },
   open: { label: "Penerimaan Naskah Dibuka", className: "bg-forest-50 text-forest-800 ring-forest-300" },
   review: { label: "Tahap Telaah & Kurasi", className: "bg-gold-50 text-gold-700 ring-gold-300" },
   closed: { label: "Penerimaan Ditutup", className: "bg-stone-100 text-stone-700 ring-stone-300" },
@@ -139,27 +168,41 @@ export const EVENT_STATUS_META: Record<EventStatus, { label: string; className: 
 };
 
 export const categories: Category[] = [
-  { id: 1, nama: "Essay", deskripsi: "Tulisan gagasan kritis dan argumentatif berbasis referensi ilmiah.", is_active: true },
-  { id: 2, nama: "Makalah", deskripsi: "Pembahasan sistematis suatu topik akademik dengan rumusan masalah dan tinjauan pustaka.", is_active: true },
-  { id: 3, nama: "Artikel Jurnal", deskripsi: "Naskah hasil penelitian empiris dengan struktur pendahuluan, metode, hasil, dan pembahasan.", is_active: true },
-  { id: 4, nama: "Literature Review", deskripsi: "Tinjauan pustaka sistematis yang mensintesis berbagai temuan riset terdahulu.", is_active: true },
-  { id: 5, nama: "Proposal PKM / Riset", deskripsi: "Rancangan gagasan program kreativitas mahasiswa, riset terapan, atau pengabdian.", is_active: true },
+  {
+    id: 1,
+    nama: "Essay",
+    deskripsi: "Tulisan gagasan kritis dan argumentatif berbasis referensi ilmiah dalam format PDF.",
+    is_active: true,
+  },
+  {
+    id: 2,
+    nama: "Makalah",
+    deskripsi: "Karya tulis akademik sistematis dengan rumusan masalah, kajian teori, pembahasan topik, dan penutup.",
+    is_active: true,
+  },
+  {
+    id: 3,
+    nama: "Artikel Jurnal",
+    deskripsi: "Naskah hasil riset ilmiah dengan format IMRAD (Pendahuluan, Metode Penelitian, Hasil & Pembahasan, Kesimpulan).",
+    is_active: true,
+  },
 ];
 
 export const events: EventItem[] = [
   {
     id: 1,
     category_id: 1,
-    nama: "Penerimaan Naskah Essay Mahasiswa — Edisi Gasal",
+    nama: "Penerimaan KTI (Essay) Anggota UKM SIMPEL 2026/2027",
     tema: "Transformasi Digital, Pendidikan, dan Ekonomi Komunitas Pesisir",
     deskripsi:
-      "Periode unggah naskah essay mahasiswa untuk diterbitkan pada repositori resmi UKM SIMPEL. Naskah yang masuk akan melewati pemeriksaan kelengkapan, desk evaluation (orisinalitas & format), serta telaah substansi oleh minimal 2 reviewer/juri.",
+      "Periode unggah naskah essay mahasiswa untuk diterbitkan pada repositori resmi UKM SIMPEL. Naskah melewati pemeriksaan kelengkapan, desk evaluation, dan telaah substansi oleh reviewer/juri.",
     deadline: "2026-12-20",
-    max_halaman: 10,
-    max_anggota: 2,
+    max_halaman: 7,
+    halaman_label: "3-7",
+    max_anggota: 6,
     status: "open",
     volume: "Vol. 04 · No. 02",
-    peserta: 48,
+    peserta: 120,
   },
   {
     id: 2,
@@ -178,24 +221,24 @@ export const events: EventItem[] = [
   {
     id: 3,
     category_id: 3,
-    nama: "Publikasi Artikel Jurnal Mahasiswa SIMPEL",
+    nama: "Publikasi Artikel Jurnal Riset Mahasiswa SIMPEL",
     tema: "Etika Teknologi, Literasi Informasi, dan Riset Terapan Kampus",
     deskripsi:
-      "Wadah publikasi artikel jurnal hasil riset mahasiswa D3/D4/S1 dengan struktur artikel ilmiah standar.",
+      "Wadah publikasi artikel jurnal hasil riset mahasiswa D3/D4/S1 dengan struktur artikel riset ilmiah standar (IMRAD).",
     deadline: "2026-12-05",
     max_halaman: 15,
-    max_anggota: 3,
+    max_anggota: 4,
     status: "open",
     volume: "Vol. 04 · No. 03",
     peserta: 62,
   },
   {
     id: 4,
-    category_id: 4,
-    nama: "Katalog Literature Review: Transisi Energi & Ekologi",
+    category_id: 3,
+    nama: "Katalog Artikel Jurnal: Transisi Energi & Ekologi",
     tema: "Inovasi Energi Bersih dan Pengelolaan Limbah Berbasis Komunitas",
     deskripsi:
-      "Edisi tematik naskah tinjauan pustaka (literature review) dan makalah seputar strategi transisi energi bersih skala daerah yang telah diterbitkan.",
+      "Edisi tematik artikel jurnal hasil penelitian seputar strategi transisi energi bersih skala daerah yang telah diterbitkan.",
     deadline: "2026-10-30",
     max_halaman: 15,
     max_anggota: 3,
@@ -213,7 +256,7 @@ export const criteria: Criteria[] = events.flatMap((e) => [
 ]);
 
 export const users: User[] = [
-  { id: "u-admin", nama: "Redaksi Admin SIMPEL", email: "admin@simpel.ac.id", role: "admin", institusi: "UKM SIMPEL UPS Tegal", nim_nisn: "-", no_hp: "081200000000", created_at: "2026-08-01" },
+  { id: "u-admin", nama: "Editor Utama SIMPEL", email: "admin@simpel.ac.id", role: "admin", institusi: "UKM SIMPEL UPS Tegal", nim_nisn: "-", no_hp: "081200000000", created_at: "2026-08-01" },
   { id: "u-1", nama: "Nadia Putri Rahmawati", email: "nadia@upstegal.ac.id", role: "peserta", institusi: "Universitas Pancasakti Tegal", nim_nisn: "2201010023", no_hp: "081234567801", created_at: "2026-10-02" },
   { id: "u-2", nama: "Rizky Aditya Pratama", email: "rizky@upstegal.ac.id", role: "peserta", institusi: "Universitas Pancasakti Tegal", nim_nisn: "2104123456", no_hp: "081234567802", created_at: "2026-10-05" },
   { id: "u-3", nama: "Salsabila Azzahra", email: "salsa@mail.ac.id", role: "peserta", institusi: "Universitas Diponegoro", nim_nisn: "220498877", no_hp: "081234567803", created_at: "2026-10-11" },
@@ -367,7 +410,7 @@ export const files: SubmissionFile[] = [
 
 export const statusLogs: StatusLog[] = [
   { id: 1, submission_id: 101, status: "submitted", catatan: "Naskah berhasil diunggah dan lolos validasi format, ukuran, serta penamaan berkas.", created_at: "2026-11-10 09:12" },
-  { id: 2, submission_id: 101, status: "desk_review", catatan: "Redaksi admin memeriksa kelengkapan berkas, surat orisinalitas, dan kesesuaian template.", created_at: "2026-11-12 14:30" },
+  { id: 2, submission_id: 101, status: "desk_review", catatan: "Editor memeriksa kelengkapan berkas, surat orisinalitas, dan kesesuaian template.", created_at: "2026-11-12 14:30" },
   { id: 3, submission_id: 101, status: "review", catatan: "Lolos desk evaluation. Naskah ditugaskan kepada 2 reviewer/juri untuk penilaian substansi.", created_at: "2026-11-14 10:05" },
 ];
 

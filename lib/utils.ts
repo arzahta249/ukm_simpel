@@ -28,3 +28,25 @@ export function initials(name: string) {
     .toUpperCase();
 }
 
+export function stripHtml(html: string): string {
+  return html
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function wordCountFromHtml(html: string): number {
+  const plain = stripHtml(html);
+  return plain ? plain.split(" ").filter(Boolean).length : 0;
+}
+
+export function sanitizeRichHtml(html: string): string {
+  if (!html) return "";
+  return html
+    .replace(/<(script|style|iframe|object|embed|form)[\s\S]*?>[\s\S]*?<\/\1>/gi, "")
+    .replace(/<(script|iframe|object|embed)[^>]*\/?>/gi, "")
+    .replace(/\son[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/(href|src)\s*=\s*(?:"\s*javascript:[^"]*"|'\s*javascript:[^']*')/gi, '$1="#"');
+}
+

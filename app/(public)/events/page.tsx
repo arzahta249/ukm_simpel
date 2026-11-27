@@ -34,7 +34,7 @@ export default async function EventsPage({ searchParams }: PageProps<"/events">)
             Pilih periode, lalu kirim tulisanmu.
           </h1>
           <p className="rise mt-4 max-w-2xl text-sm leading-relaxed text-muted sm:text-base" style={{ animationDelay: "160ms" }}>
-            Setiap periode punya tema, batas halaman, dan tenggat sendiri. Baca dulu ketentuannya, lalu unggah naskahmu.
+            Setiap periode punya tema dan batas halaman sendiri. Baca dulu ketentuannya, lalu unggah naskahmu.
           </p>
 
           <div className="rise mt-7 flex flex-wrap gap-2" style={{ animationDelay: "240ms" }}>

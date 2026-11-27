@@ -17,20 +17,20 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
             <BookMascot showBubble={false} />
           </div>
           <p className="font-mono text-xs uppercase tracking-widest text-gold-300">
-            PORTAL PENULIS &amp; REDAKSI
+            PORTAL KARYA TULIS ILMIAH
           </p>
           <h2 className="mt-3 text-3xl font-semibold leading-snug xl:text-4xl">
             Sistem Pengajuan &amp; Publikasi Naskah Ilmiah Mahasiswa.
           </h2>
           <p className="mt-4 text-sm leading-relaxed text-forest-100/75">
-            Unggah karya tulis ilmiah atau essay Anda, pantau tahapan evaluasi redaksi dan penilaian reviewer secara transparan hingga diterbitkan.
+            Unggah essay, makalah, atau artikel jurnal riset Anda dan pantau seluruh tahapan kurasi secara transparan hingga diterbitkan.
           </p>
 
           <ul className="mt-8 space-y-3 border-t border-white/10 pt-6 text-xs text-forest-100/85">
             {[
               "Validasi otomatis format PDF, ukuran, dan penamaan berkas",
-              "Desk evaluation orisinalitas dan format oleh redaksi",
-              "Telaah substansi oleh minimal 2 reviewer/juri per naskah",
+              "Desk evaluation orisinalitas dan format oleh editor",
+              "Telaah substansi oleh tim reviewer/juri (maks. 4 orang per naskah)",
               "Riwayat status dan catatan revisi terekam lengkap",
             ].map((item) => (
               <li key={item} className="flex items-start gap-2.5">

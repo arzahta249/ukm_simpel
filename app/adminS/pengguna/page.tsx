@@ -11,11 +11,11 @@ export default async function PenggunaPage() {
   const envAdmins = [
     {
       email: process.env.ADMIN_1_EMAIL || "admin1@simpel.ac.id",
-      nama: process.env.ADMIN_1_NAME || "Admin Redaksi 1",
+      nama: process.env.ADMIN_1_NAME || "Editor Utama 1",
     },
     {
       email: process.env.ADMIN_2_EMAIL || "admin2@simpel.ac.id",
-      nama: process.env.ADMIN_2_NAME || "Admin Redaksi 2",
+      nama: process.env.ADMIN_2_NAME || "Editor Utama 2",
     },
   ];
 

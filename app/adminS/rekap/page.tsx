@@ -12,20 +12,30 @@ export default async function RekapNilaiPage() {
     const u = db.users.find((x) => x.id === s.user_id);
     const ev = db.events.find((e) => e.id === s.event_id);
     const assigns = db.review_assignments.filter((a) => a.submission_id === s.id);
-    const revs = assigns
-      .map((a) => db.reviews.find((r) => r.assignment_id === a.id))
-      .filter((r): r is NonNullable<typeof r> => Boolean(r));
+    const reviewItems = assigns.map((a) => {
+      const reviewer = db.users.find((j) => j.id === a.juri_id);
+      const rev = db.reviews.find((r) => r.assignment_id === a.id);
+      return {
+        reviewerName: reviewer?.nama || "Reviewer",
+        status: a.status,
+        skor: rev ? rev.total_skor : null,
+        rekomendasi: rev ? rev.rekomendasi : null,
+      };
+    });
 
-    const j1 = revs[0]?.total_skor ?? (s.skor_akhir ? Number((s.skor_akhir + 0.6).toFixed(1)) : 85.0);
-    const j2 = revs[1]?.total_skor ?? (s.skor_akhir ? Number((s.skor_akhir - 0.6).toFixed(1)) : 84.0);
+    const scored = reviewItems.map((r) => r.skor).filter((n): n is number => n !== null);
+    const computedAvg = scored.length
+      ? Number((scored.reduce((a, b) => a + b, 0) / scored.length).toFixed(2))
+      : s.skor_akhir;
+
     return {
       id: s.id,
       judul: s.judul,
       penulis: u?.nama || "Penulis",
       institusi: u?.institusi || "",
       volume: ev?.volume || "Vol. 04",
-      skorJuri1: j1,
-      skorJuri2: j2,
+      reviews: reviewItems,
+      avgSkor: computedAvg,
       status: s.status,
     };
   });

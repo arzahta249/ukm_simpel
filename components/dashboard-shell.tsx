@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   Award,
   BookOpenCheck,
@@ -11,7 +11,7 @@ import {
   Compass,
   FileStack,
   FolderTree,
-  Globe,
+  History,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -26,10 +26,10 @@ import { Avatar } from "./ui";
 import { cn } from "@/lib/utils";
 import { logoutAction } from "@/app/actions";
 
-type NavItem = { href: string; label: string; icon: typeof LayoutDashboard; badge?: string };
+type NavItem = { href: string; label: string; icon: typeof LayoutDashboard };
 type NavGroup = { title?: string; items: NavItem[] };
 
-const NAV: Record<"peserta" | "admin", NavGroup[]> = {
+const NAV: Record<"peserta" | "admin" | "juri", NavGroup[]> = {
   peserta: [
     {
       title: "Menu Penulis",
@@ -40,21 +40,30 @@ const NAV: Record<"peserta" | "admin", NavGroup[]> = {
       ],
     },
     {
-      title: "Akun & Katalog",
+      title: "Periode & Profil",
       items: [
         { href: "/events", label: "Periode Penerimaan", icon: Compass },
         { href: "/dashboard/profil", label: "Profil Penulis", icon: UserCircle },
-        { href: "/", label: "Beranda Publik", icon: Globe },
+      ],
+    },
+  ],
+  juri: [
+    {
+      title: "Panel Reviewer / Juri",
+      items: [
+        { href: "/reviewer", label: "Tugas Penilaian", icon: ClipboardCheck },
+        { href: "/reviewer/riwayat", label: "Riwayat Penilaian", icon: History },
+        { href: "/reviewer/profil", label: "Profil & Sandi", icon: UserCircle },
       ],
     },
   ],
   admin: [
     {
-      title: "Redaksi SIMPEL",
-      items: [{ href: "/adminS", label: "Ringkasan Redaksi", icon: LayoutDashboard }],
+      title: "Editor SIMPEL",
+      items: [{ href: "/adminS", label: "Ringkasan Editor", icon: LayoutDashboard }],
     },
     {
-      title: "Periode & Kategori",
+      title: "Periode & Jenis Naskah",
       items: [
         { href: "/adminS/events", label: "Periode Penerimaan", icon: CalendarRange },
         { href: "/adminS/kategori", label: "Jenis Naskah", icon: FolderTree },
@@ -65,16 +74,13 @@ const NAV: Record<"peserta" | "admin", NavGroup[]> = {
       items: [
         { href: "/adminS/naskah", label: "Naskah Masuk & Desk Eval", icon: BookOpenCheck },
         { href: "/adminS/penugasan", label: "Tugaskan Reviewer/Juri", icon: Users },
-        { href: "/adminS/penilaian", label: "Penilaian Kriteria", icon: ClipboardCheck },
+        { href: "/adminS/penilaian", label: "Pantau Penilaian", icon: ClipboardCheck },
         { href: "/adminS/rekap", label: "Rekap & Penerbitan", icon: Trophy },
       ],
     },
     {
-      title: "Manajemen",
-      items: [
-        { href: "/adminS/pengguna", label: "Penulis & Reviewer", icon: Award },
-        { href: "/", label: "Lihat Portal Publik", icon: Globe },
-      ],
+      title: "Manajemen Akun",
+      items: [{ href: "/adminS/pengguna", label: "Penulis & Reviewer", icon: Award }],
     },
   ],
 };
@@ -84,26 +90,38 @@ export function DashboardShell({
   user,
   children,
 }: {
-  variant: "peserta" | "admin";
+  variant: "peserta" | "admin" | "juri";
   user: { nama: string; email: string; role?: string };
   children: ReactNode;
 }) {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const isAdmin = variant === "admin";
-  const root = isAdmin ? "/adminS" : "/dashboard";
+  const isJuri = variant === "juri";
+  const root = isAdmin ? "/adminS" : isJuri ? "/reviewer" : "/dashboard";
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   async function logout() {
     await logoutAction();
-    router.push("/login");
+    const target = isAdmin ? "/login?next=/adminS" : isJuri ? "/login?next=/reviewer" : "/login";
+    router.push(target);
     router.refresh();
   }
 
   const sidebar = (
     <div className={cn("flex h-full flex-col", isAdmin ? "bg-forest-950 text-forest-100" : "bg-sheet text-ink")}>
       <div className={cn("flex h-16 items-center px-5", isAdmin ? "border-b border-white/10" : "border-b border-line")}>
-        <Logo light={isAdmin} size={34} href={root} subtitle={isAdmin ? "Panel Redaksi /adminS" : "Portal Penulis KTI"} />
+        <Logo
+          light={isAdmin}
+          size={34}
+          href={root}
+          subtitle={isAdmin ? "Panel Editor /adminS" : isJuri ? "Portal Reviewer / Juri" : "Portal Penulis KTI"}
+        />
       </div>
 
       <nav className="scrollbar-thin flex-1 space-y-6 overflow-y-auto px-3.5 py-5">
@@ -121,7 +139,8 @@ export function DashboardShell({
             )}
             <ul className="space-y-1">
               {group.items.map((item) => {
-                const active = item.href === root ? pathname === root : item.href !== "/" && pathname.startsWith(item.href);
+                const active =
+                  mounted && (item.href === root ? pathname === root : item.href !== "/" && pathname.startsWith(item.href));
                 const Icon = item.icon;
                 return (
                   <li key={item.href}>
@@ -129,7 +148,7 @@ export function DashboardShell({
                       href={item.href}
                       onClick={() => setOpen(false)}
                       className={cn(
-                        "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
+                        "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
                         isAdmin
                           ? active
                             ? "bg-forest-800 text-white"
@@ -161,7 +180,7 @@ export function DashboardShell({
         <button
           onClick={logout}
           className={cn(
-            "flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-xs font-semibold transition-colors",
+            "flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold transition-colors",
             isAdmin ? "text-forest-200 hover:bg-white/5 hover:text-white" : "text-muted hover:bg-red-50 hover:text-red-700",
           )}
         >
@@ -183,7 +202,7 @@ export function DashboardShell({
           <aside className="fixed inset-y-0 left-0 w-72 max-w-[85vw] shadow-xl">{sidebar}</aside>
           <button
             onClick={() => setOpen(false)}
-            className="fixed right-4 top-4 flex size-10 items-center justify-center rounded-md bg-white text-ink shadow"
+            className="fixed right-4 top-4 flex size-10 items-center justify-center rounded-xl bg-white text-ink shadow"
             aria-label="Tutup menu"
           >
             <X className="size-5" />
@@ -196,27 +215,24 @@ export function DashboardShell({
           <div className="flex items-center gap-3">
             <button
               onClick={() => setOpen(true)}
-              className="flex size-9 items-center justify-center rounded-md border border-line-strong bg-sheet lg:hidden"
+              className="flex size-9 items-center justify-center rounded-xl border border-line-strong bg-sheet lg:hidden"
               aria-label="Buka menu"
             >
               <Menu className="size-5" />
             </button>
             <span className="font-mono text-xs uppercase tracking-wider text-muted">
-              {isAdmin ? "REDAKSI & KURASI · /adminS" : "PORTAL PENULIS KARYA ILMIAH"}
+              {isAdmin
+                ? "EDITOR & KURASI · /adminS"
+                : isJuri
+                  ? "PANEL DEWAN REVIEWER / JURI"
+                  : "PORTAL PENULIS KARYA ILMIAH"}
             </span>
           </div>
 
           <div className="flex items-center gap-2.5">
-            {isAdmin && (
-              <Link href="/dashboard" className="btn btn-outline btn-sm">
-                Portal Penulis
-              </Link>
-            )}
-            {!isAdmin && user.role === "admin" && (
-              <Link href="/adminS" className="btn btn-outline btn-sm">
-                Panel /adminS
-              </Link>
-            )}
+            <span className="hidden rounded-full border border-line bg-sheet px-3 py-1 font-mono text-[11px] font-semibold text-forest-800 sm:inline-flex">
+              {isAdmin ? "Role: Editor" : isJuri ? "Role: Reviewer" : "Role: Penulis"}
+            </span>
           </div>
         </header>
 
@@ -230,10 +246,10 @@ export function DashboardShell({
         </main>
       </div>
 
-      {/* Navigasi bawah khusus ponsel (portal penulis) */}
-      {!isAdmin && (
+      {/* Navigasi bawah ponsel: Penulis */}
+      {variant === "peserta" && (
         <nav
-          aria-label="Navigasi utama"
+          aria-label="Navigasi utama penulis"
           className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-sheet/95 px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1.5 backdrop-blur-xl lg:hidden"
         >
           <ul className="mx-auto grid max-w-md grid-cols-4 items-end">
@@ -244,7 +260,7 @@ export function DashboardShell({
               { href: "/dashboard/profil", label: "Profil", icon: UserCircle },
             ].map((item) => {
               const Icon = item.icon;
-              const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
+              const active = mounted && (item.exact ? pathname === item.href : pathname.startsWith(item.href));
               return (
                 <li key={item.href} className="flex justify-center">
                   <Link
@@ -264,6 +280,41 @@ export function DashboardShell({
                       )}
                     >
                       <Icon className={item.raised ? "size-6" : "size-5"} />
+                    </span>
+                    {item.label}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+      )}
+
+      {/* Navigasi bawah ponsel: Reviewer */}
+      {variant === "juri" && (
+        <nav
+          aria-label="Navigasi utama reviewer"
+          className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-sheet/95 px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1.5 backdrop-blur-xl lg:hidden"
+        >
+          <ul className="mx-auto grid max-w-md grid-cols-3 items-center">
+            {[
+              { href: "/reviewer", label: "Tugas", icon: ClipboardCheck, exact: true },
+              { href: "/reviewer/riwayat", label: "Riwayat", icon: History },
+              { href: "/reviewer/profil", label: "Profil", icon: UserCircle },
+            ].map((item) => {
+              const Icon = item.icon;
+              const active = mounted && (item.exact ? pathname === item.href : pathname.startsWith(item.href));
+              return (
+                <li key={item.href} className="flex justify-center">
+                  <Link
+                    href={item.href}
+                    className={cn(
+                      "flex flex-col items-center gap-0.5 py-1.5 text-[11px] font-bold transition-colors",
+                      active ? "text-forest-800" : "text-muted",
+                    )}
+                  >
+                    <span className={cn("flex h-8 w-12 items-center justify-center rounded-2xl", active && "bg-forest-100")}>
+                      <Icon className="size-5" />
                     </span>
                     {item.label}
                   </Link>

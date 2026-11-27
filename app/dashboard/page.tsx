@@ -13,9 +13,10 @@ import {
   Send,
 } from "lucide-react";
 import { EventStatusBadge, SectionCard, StatCard, StatusBadge } from "@/components/ui";
+import { formatEventPages } from "@/lib/data";
 import { readDb } from "@/lib/db";
 import { getSessionUser } from "@/lib/session";
-import { daysLeft, formatShortDate } from "@/lib/utils";
+import { formatShortDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ export default async function PesertaDashboard() {
     .slice(-4)
     .reverse();
 
-  const progressSteps = ["Submitted", "Desk Evaluation", "Ditinjau Juri", "Keputusan Terbit"];
+  const progressSteps = ["Terkirim", "Diperiksa Admin", "Verifikasi", "Terbit di Katalog"];
   const stepIndexMap: Record<string, number> = {
     draft: 0,
     submitted: 1,
@@ -148,14 +149,14 @@ export default async function PesertaDashboard() {
                   <p className="mt-0.5 text-sm font-semibold">{formatShortDate(active.submitted_at)}</p>
                 </div>
                 <div>
-                  <p className="font-mono text-[10.5px] uppercase tracking-wider text-muted">Penugasan Juri</p>
-                  <p className="mt-0.5 text-sm font-semibold">
-                    {db.review_assignments.filter((a) => a.submission_id === active.id).length} reviewer ditugaskan
-                  </p>
+                  <p className="font-mono text-[10.5px] uppercase tracking-wider text-muted">Verifikasi</p>
+                  <p className="mt-0.5 text-sm font-semibold">Admin Redaksi SIMPEL</p>
                 </div>
                 <div>
-                  <p className="font-mono text-[10.5px] uppercase tracking-wider text-muted">Skor Akhir</p>
-                  <p className="mt-0.5 text-sm font-semibold">{active.skor_akhir ?? "Menunggu Rekap"}</p>
+                  <p className="font-mono text-[10.5px] uppercase tracking-wider text-muted">Status Publikasi</p>
+                  <p className="mt-0.5 text-sm font-semibold">
+                    {active.status === "lolos" || active.status === "juara" ? "Sudah Terbit" : "Dalam Proses"}
+                  </p>
                 </div>
               </div>
             </div>
@@ -246,29 +247,28 @@ export default async function PesertaDashboard() {
 
         <SectionCard title="Periode Penerimaan Dibuka" action={<CalendarClock className="size-4 text-muted" />}>
           <ul className="divide-y divide-line">
-            {upcoming.map((e) => {
-              const left = daysLeft(e.deadline);
-              return (
-                <li key={e.id}>
-                  <Link
-                    href={`/events/${e.id}`}
-                    className="group flex items-center justify-between gap-3 px-5 py-4 transition-colors hover:bg-paper sm:px-6"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="font-mono text-[11px] font-semibold text-forest-700">{e.volume}</p>
-                      <p className="mt-0.5 line-clamp-1 text-sm font-semibold text-ink group-hover:text-forest-800">
-                        {e.nama}
-                      </p>
-                      <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                        <EventStatusBadge status={e.status} className="!px-2 !py-0.5 !text-[10px]" />
-                        <span className="font-mono text-[11px] text-muted">{left} hari tersisa</span>
-                      </div>
+            {upcoming.map((e) => (
+              <li key={e.id}>
+                <Link
+                  href={`/events/${e.id}`}
+                  className="group flex items-center justify-between gap-3 px-5 py-4 transition-colors hover:bg-paper sm:px-6"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="font-mono text-[11px] font-semibold text-forest-700">{e.volume}</p>
+                    <p className="mt-0.5 line-clamp-1 text-sm font-semibold text-ink group-hover:text-forest-800">
+                      {e.nama}
+                    </p>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                      <EventStatusBadge status={e.status} className="!px-2 !py-0.5 !text-[10px]" />
+                      <span className="font-mono text-[11px] text-muted">
+                        {e.halaman_label ? formatEventPages(e, "hlm") : `Maks. ${e.max_halaman} hlm`}
+                      </span>
                     </div>
-                    <ArrowRight className="size-4 shrink-0 text-muted transition-transform group-hover:translate-x-0.5" />
-                  </Link>
-                </li>
-              );
-            })}
+                  </div>
+                  <ArrowRight className="size-4 shrink-0 text-muted transition-transform group-hover:translate-x-0.5" />
+                </Link>
+              </li>
+            ))}
           </ul>
         </SectionCard>
       </div>

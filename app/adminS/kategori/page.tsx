@@ -17,8 +17,8 @@ export default async function KategoriPage() {
     <>
       <PageHeader
         eyebrow="TABEL CATEGORIES · JENIS NASKAH"
-        title="Jenis Naskah (Essay, Makalah, Artikel)"
-        description="Kelola jenis naskah spesifik yang dapat dipilih penulis saat mengunggah dokumen (Essay, Makalah, Artikel Jurnal, Literature Review, Proposal)."
+        title="Jenis Naskah (Essay, Makalah &amp; Artikel Jurnal)"
+        description="Kelola jenis naskah yang dapat dipilih penulis saat mengunggah dokumen (Essay, Makalah Akademik, dan Artikel Jurnal Riset)."
       />
       <KategoriClient categories={db.categories} counts={counts} />
     </>

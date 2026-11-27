@@ -1,17 +1,13 @@
 import Link from "next/link";
-import { ArrowUpRight, CalendarDays, FileText, Users } from "lucide-react";
-import { getCategory, type EventItem } from "@/lib/data";
-import { daysLeft, formatShortDate } from "@/lib/utils";
+import { ArrowUpRight, BookMarked, FileText, Users } from "lucide-react";
+import { formatEventPages, getCategory, type EventItem } from "@/lib/data";
 import { EventStatusBadge } from "./ui";
 
 const ACCENTS = ["from-forest-600 to-forest-800", "from-gold-400 to-gold-600", "from-olive-500 to-forest-700", "from-forest-400 to-forest-700"];
 
 export function EventCard({ event, categoryName }: { event: EventItem; categoryName?: string }) {
-  const left = daysLeft(event.deadline);
   const name = categoryName ?? getCategory(event.category_id)?.nama ?? "Naskah";
   const open = event.status === "open";
-  const pct = open ? Math.min(100, Math.max(6, 100 - (Math.max(left, 0) / 60) * 100)) : 100;
-  const urgent = open && left <= 14;
 
   return (
     <Link
@@ -35,12 +31,12 @@ export function EventCard({ event, categoryName }: { event: EventItem; categoryN
 
         <div className="mt-5 grid grid-cols-3 gap-2 font-mono text-[11px] text-muted">
           <span className="flex items-center gap-1.5 rounded-lg bg-paper px-2 py-1.5">
-            <CalendarDays className="size-3.5 shrink-0 text-forest-700" />
-            <span className="truncate">{formatShortDate(event.deadline)}</span>
+            <BookMarked className="size-3.5 shrink-0 text-forest-700" />
+            <span className="truncate">{event.max_anggota} penulis</span>
           </span>
           <span className="flex items-center gap-1.5 rounded-lg bg-paper px-2 py-1.5">
             <FileText className="size-3.5 shrink-0 text-forest-700" />
-            {event.max_halaman} hlm
+            {formatEventPages(event, "hlm")}
           </span>
           <span className="flex items-center gap-1.5 rounded-lg bg-paper px-2 py-1.5">
             <Users className="size-3.5 shrink-0 text-forest-700" />
@@ -49,19 +45,13 @@ export function EventCard({ event, categoryName }: { event: EventItem; categoryN
         </div>
 
         <div className="mt-auto pt-5">
-          <div className="mb-2 flex items-center justify-between text-xs">
-            <span className={`font-semibold ${urgent ? "text-red-700" : "text-forest-800"}`}>
-              {open ? (left > 0 ? `Sisa ${left} hari lagi` : "Penerimaan berakhir") : "Edisi telah terbit"}
+          <div className="flex items-center justify-between border-t border-line pt-3 text-xs">
+            <span className="font-semibold text-forest-800">
+              {open ? "Penerimaan naskah terbuka" : "Edisi telah terbit"}
             </span>
             <span className="inline-flex items-center gap-1 font-bold text-forest-800 transition-transform group-hover:translate-x-0.5">
               Lihat <ArrowUpRight className="size-3.5" />
             </span>
-          </div>
-          <div className="h-2 overflow-hidden rounded-full bg-paper-dark">
-            <div
-              className={`h-full rounded-full ${urgent ? "bg-red-500" : "bg-gradient-to-r from-forest-400 to-forest-700"}`}
-              style={{ width: `${pct}%` }}
-            />
           </div>
         </div>
       </div>

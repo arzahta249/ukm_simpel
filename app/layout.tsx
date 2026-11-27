@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     template: "%s · SIMPEL",
   },
   description:
-    "Portal pengumpulan, telaah sejawat, dan publikasi karya tulis ilmiah serta essay mahasiswa UKM Studi Ilmiah Mahasiswa (SIMPEL) Universitas Pancasakti Tegal.",
+    "Portal pengumpulan, telaah sejawat, dan publikasi essay, makalah, serta artikel jurnal mahasiswa UKM Studi Ilmiah Mahasiswa (SIMPEL) Universitas Pancasakti Tegal.",
   icons: { icon: "/logo-simpel.jpg" },
 };
 

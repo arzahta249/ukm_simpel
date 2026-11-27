@@ -43,7 +43,7 @@ export function Footer() {
 
             <div className="col-span-2 sm:col-span-1">
               <h4 className="mb-3 font-mono text-[11px] font-semibold uppercase tracking-widest text-gold-300">
-                Kontak Redaksi
+                Kontak Editor
               </h4>
               <ul className="space-y-2 text-sm">
                 <li><span className="font-mono text-xs text-forest-300">simpel@upstegal.ac.id</span></li>

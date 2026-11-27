@@ -7,6 +7,8 @@ import { Avatar, SectionCard, StatusBadge } from "@/components/ui";
 import type { Submission, User } from "@/lib/data";
 import { assignJuriAction } from "@/app/actions";
 
+const MAX_REVIEWERS = 4;
+
 type EnrichedSub = Submission & { authorName: string; authorInstitusi: string; volume: string };
 
 export function PenugasanClient({
@@ -22,20 +24,34 @@ export function PenugasanClient({
   const [assignMap, setAssignMap] = useState<Record<number, string[]>>(initialMap);
   const [savingId, setSavingId] = useState<number | null>(null);
   const [savedId, setSavedId] = useState<number | null>(null);
+  const [errorMap, setErrorMap] = useState<Record<number, string>>({});
 
   function toggleJuri(subId: number, juriId: string) {
     const current = assignMap[subId] ?? [];
+    if (!current.includes(juriId) && current.length >= MAX_REVIEWERS) {
+      setErrorMap({ ...errorMap, [subId]: `Maksimal ${MAX_REVIEWERS} reviewer per naskah.` });
+      return;
+    }
     const next = current.includes(juriId) ? current.filter((x) => x !== juriId) : [...current, juriId];
     setAssignMap({ ...assignMap, [subId]: next });
     setSavedId(null);
+    if (errorMap[subId]) {
+      const copy = { ...errorMap };
+      delete copy[subId];
+      setErrorMap(copy);
+    }
   }
 
   async function save(subId: number) {
     const selected = assignMap[subId] ?? [];
-    if (selected.length < 2) return;
+    if (selected.length < 1 || selected.length > MAX_REVIEWERS) return;
     setSavingId(subId);
-    await assignJuriAction(subId, selected);
+    const res = await assignJuriAction(subId, selected);
     setSavingId(null);
+    if (!res.ok) {
+      setErrorMap({ ...errorMap, [subId]: res.error || "Gagal menyimpan penugasan." });
+      return;
+    }
     setSavedId(subId);
     router.refresh();
   }
@@ -62,13 +78,14 @@ export function PenugasanClient({
       </div>
 
       <SectionCard
-        title="Matriks Penugasan Juri per Naskah"
-        description="Pilih minimal 2 juri pada setiap naskah lalu simpan penugasan ke database"
+        title="Matriks Penugasan Reviewer per Naskah"
+        description={`Pilih 1 hingga maksimal ${MAX_REVIEWERS} reviewer/juri pada setiap naskah lalu simpan penugasan ke database`}
       >
         <div className="divide-y divide-line">
           {submissions.map((s) => {
             const selected = assignMap[s.id] ?? [];
-            const validCount = selected.length >= 2;
+            const validCount = selected.length >= 1 && selected.length <= MAX_REVIEWERS;
+            const full = selected.length >= MAX_REVIEWERS;
 
             return (
               <div key={s.id} className="p-5 sm:p-6">
@@ -93,27 +110,31 @@ export function PenugasanClient({
                     }`}
                   >
                     <Users className="mr-1 inline size-3.5" />
-                    {selected.length} / 2 Juri Terpilih
+                    {selected.length} / {MAX_REVIEWERS} Reviewer Terpilih
                   </span>
                 </div>
 
-                <div className="mt-4 grid gap-2.5 sm:grid-cols-3">
+                <div className="mt-4 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
                   {juries.map((j) => {
                     const active = selected.includes(j.id);
+                    const disabled = !active && full;
                     return (
                       <button
                         key={j.id}
                         type="button"
+                        disabled={disabled}
                         onClick={() => toggleJuri(s.id, j.id)}
-                        className={`flex items-center justify-between gap-2 rounded-md border p-3 text-left text-xs transition-colors ${
+                        className={`flex items-center justify-between gap-2 rounded-xl border p-3 text-left text-xs transition-colors ${
                           active
                             ? "border-forest-700 bg-forest-50/80 text-forest-950"
-                            : "border-line bg-paper/50 text-muted hover:border-forest-400"
+                            : disabled
+                              ? "cursor-not-allowed border-line bg-paper/30 text-muted opacity-50"
+                              : "border-line bg-paper/50 text-muted hover:border-forest-400"
                         }`}
                       >
                         <div className="min-w-0">
                           <p className="truncate font-semibold text-ink">{j.nama}</p>
-                          <p className="font-mono text-[10.5px] text-muted">{j.email}</p>
+                          <p className="truncate font-mono text-[10.5px] text-muted">{j.email}</p>
                         </div>
                         <span
                           className={`flex size-5 shrink-0 items-center justify-center rounded ${
@@ -129,9 +150,11 @@ export function PenugasanClient({
 
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
                   <p className="font-mono text-xs text-muted">
-                    {validCount
-                      ? "Syarat minimal 2 juri terpenuhi."
-                      : "Pilih minimal 2 juri sesuai ketentuan alur evaluasi."}
+                    {selected.length === 0
+                      ? `Pilih 1 hingga maksimal ${MAX_REVIEWERS} reviewer.`
+                      : full
+                        ? `Batas maksimal ${MAX_REVIEWERS} reviewer tercapai.`
+                        : `${selected.length} reviewer terpilih (maksimal ${MAX_REVIEWERS} orang per naskah).`}
                   </p>
                   <button
                     type="button"
@@ -148,9 +171,15 @@ export function PenugasanClient({
                   </button>
                 </div>
 
+                {errorMap[s.id] && (
+                  <p className="mt-3 rounded-xl border border-red-300 bg-red-50 px-3 py-2 font-mono text-xs text-red-800">
+                    {errorMap[s.id]}
+                  </p>
+                )}
+
                 {savedId === s.id && (
-                  <p className="mt-3 rounded border border-forest-300 bg-forest-50 px-3 py-2 font-mono text-xs text-forest-800">
-                    ✓ Penugasan {selected.length} juri untuk naskah SMPL-{s.id} telah disimpan ke database.
+                  <p className="mt-3 rounded-xl border border-forest-300 bg-forest-50 px-3 py-2 font-mono text-xs text-forest-800">
+                    ✓ Penugasan {selected.length} reviewer untuk naskah SMPL-{s.id} telah disimpan ke database.
                   </p>
                 )}
               </div>
@@ -161,4 +190,3 @@ export function PenugasanClient({
     </>
   );
 }
-

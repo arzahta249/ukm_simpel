@@ -34,7 +34,7 @@ export default async function PenugasanJuriPage() {
       <PageHeader
         eyebrow="TAHAP 4 ALUR ADMIN · TABEL REVIEW_ASSIGNMENTS"
         title="Penugasan Reviewer / Juri"
-        description="Tugaskan minimal 2 juri/reviewer untuk setiap naskah yang telah lolos Desk Evaluation."
+        description="Tugaskan hingga maksimal 4 reviewer/juri untuk setiap naskah yang telah lolos Desk Evaluation."
       />
       <PenugasanClient submissions={enriched} juries={juries} initialMap={initialMap} />
     </>

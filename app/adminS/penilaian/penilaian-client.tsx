@@ -105,7 +105,9 @@ export function PenilaianClient({
                     <p className="mt-1.5 line-clamp-2 text-sm font-semibold text-forest-950">{item.judul}</p>
                     <div className="mt-1 flex items-center justify-between text-xs text-muted">
                       <span>Penulis: {item.authorName}</span>
-                      {item.skor_akhir && <span className="font-mono font-bold text-forest-800">Rata-rata: {item.skor_akhir}</span>}
+                      {item.skor_akhir && (
+                        <span className="font-mono font-bold text-forest-800">Rata-rata: {item.skor_akhir}</span>
+                      )}
                     </div>
                   </button>
                 </li>
@@ -120,13 +122,13 @@ export function PenilaianClient({
           title={`Formulir Penilaian · SMPL-${sub.id}`}
           description={`${sub.eventName} (${sub.volume})`}
           action={
-            <span className="rounded bg-forest-950 px-3 py-1 font-mono text-xs font-bold text-gold-300">
+            <span className="rounded-lg bg-forest-950 px-3 py-1 font-mono text-xs font-bold text-gold-300">
               Total Tertimbang: {weightedTotal.toFixed(1)}
             </span>
           }
         >
           <form className="space-y-5 p-5 sm:p-6" onSubmit={onSubmit}>
-            <div className="rounded-md border border-line bg-paper p-4">
+            <div className="rounded-xl border border-line bg-paper p-4">
               <p className="text-sm font-semibold text-forest-950">{sub.judul}</p>
               <p className="mt-1 text-xs text-muted">
                 Penulis: {sub.authorName} ({sub.authorInstitusi})
@@ -140,7 +142,7 @@ export function PenilaianClient({
               {crit.map((c, idx) => {
                 const val = scores[idx] ?? 85;
                 return (
-                  <div key={c.id} className="rounded-md border border-line bg-sheet p-4">
+                  <div key={c.id} className="rounded-xl border border-line bg-sheet p-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
                         <p className="text-sm font-semibold text-ink">{c.nama}</p>
@@ -155,7 +157,7 @@ export function PenilaianClient({
                           onChange={(e) =>
                             setScores({ ...scores, [idx]: Math.min(100, Math.max(0, Number(e.target.value))) })
                           }
-                          className="input !w-20 text-right font-mono font-bold"
+                          className="input !min-h-9 !w-20 !py-1 text-right font-mono font-bold"
                         />
                         <span className="font-mono text-xs text-muted">/ 100</span>
                       </div>
@@ -192,7 +194,7 @@ export function PenilaianClient({
                     key={r}
                     type="button"
                     onClick={() => setRekomendasi(r)}
-                    className={`rounded-md border py-2.5 font-mono text-xs font-bold transition-colors ${
+                    className={`rounded-xl border py-2.5 font-mono text-xs font-bold transition-colors ${
                       rekomendasi === r
                         ? "border-forest-800 bg-forest-950 text-gold-300"
                         : "border-line bg-paper text-muted hover:text-ink"
@@ -214,7 +216,7 @@ export function PenilaianClient({
             </div>
 
             {saved && (
-              <p className="flex items-center gap-2 rounded border border-forest-300 bg-forest-50 p-3 font-mono text-xs font-semibold text-forest-800">
+              <p className="flex items-center gap-2 rounded-xl border border-forest-300 bg-forest-50 p-3 font-mono text-xs font-semibold text-forest-800">
                 <CheckCircle2 className="size-4 shrink-0" />
                 Skor ({weightedTotal.toFixed(2)}) dan rekomendasi ({rekomendasi}) berhasil disimpan ke database!
               </p>
@@ -225,4 +227,3 @@ export function PenilaianClient({
     </div>
   );
 }
-

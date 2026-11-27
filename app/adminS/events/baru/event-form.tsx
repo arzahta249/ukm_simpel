@@ -13,7 +13,6 @@ export function EventForm({ categories }: { categories: { id: number; nama: stri
   const router = useRouter();
   const [nama, setNama] = useState("");
   const [categoryId, setCategoryId] = useState<number>(categories[0]?.id ?? 1);
-  const [deadline, setDeadline] = useState("2027-02-15");
   const [volume, setVolume] = useState("Vol. 05 · No. 02");
   const [tema, setTema] = useState("");
   const [deskripsi, setDeskripsi] = useState("");
@@ -39,7 +38,7 @@ export function EventForm({ categories }: { categories: { id: number; nama: stri
       nama,
       tema,
       deskripsi,
-      deadline,
+      deadline: "2099-12-31",
       max_halaman: maxHalaman,
       max_anggota: maxAnggota,
       volume,
@@ -74,7 +73,7 @@ export function EventForm({ categories }: { categories: { id: number; nama: stri
               />
             </div>
             <div>
-              <label className="label">Jenis Naskah (Essay, Makalah, dll.)</label>
+              <label className="label">Jenis Naskah (Essay, Makalah, Artikel Jurnal)</label>
               <select
                 value={categoryId}
                 onChange={(e) => setCategoryId(Number(e.target.value))}
@@ -88,13 +87,12 @@ export function EventForm({ categories }: { categories: { id: number; nama: stri
               </select>
             </div>
             <div>
-              <label className="label">Tenggat Unggah (Deadline)</label>
+              <label className="label">Volume / Nomor Terbitan</label>
               <input
-                required
-                type="date"
-                value={deadline}
-                onChange={(e) => setDeadline(e.target.value)}
+                value={volume}
+                onChange={(e) => setVolume(e.target.value)}
                 className="input"
+                placeholder="Vol. 05 · No. 02"
               />
             </div>
             <div className="sm:col-span-2">
@@ -117,16 +115,7 @@ export function EventForm({ categories }: { categories: { id: number; nama: stri
                 placeholder="Jelaskan ruang lingkup topik, aturan format penulisan, dan persyaratan berkas…"
               />
             </div>
-            <div>
-              <label className="label">Volume / Nomor Terbitan</label>
-              <input
-                value={volume}
-                onChange={(e) => setVolume(e.target.value)}
-                className="input"
-                placeholder="Vol. 05 · No. 02"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 sm:col-span-2">
               <div>
                 <label className="label">Maks. Halaman</label>
                 <input
@@ -142,7 +131,7 @@ export function EventForm({ categories }: { categories: { id: number; nama: stri
                 <input
                   type="number"
                   min={1}
-                  max={5}
+                  max={10}
                   value={maxAnggota}
                   onChange={(e) => setMaxAnggota(Number(e.target.value))}
                   className="input"

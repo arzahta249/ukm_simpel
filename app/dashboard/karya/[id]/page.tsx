@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Download, FileText, Hourglass, MessageSquareQuote } from "lucide-react";
+import { ArrowLeft, Download, FileText, Globe, Hourglass, Lock, MessageSquareQuote, PenLine } from "lucide-react";
+import { EssayContentView } from "@/components/essay-content-view";
 import { Avatar, SectionCard, StatusBadge } from "@/components/ui";
 import { STATUS_META } from "@/lib/data";
 import { readDb } from "@/lib/db";
 import { formatDate } from "@/lib/utils";
+import { DeleteSubmissionButton } from "@/app/adminS/naskah/delete-submission-button";
+import { RevisionUploadBox } from "./revision-upload";
 
 export const dynamic = "force-dynamic";
 
@@ -38,34 +41,69 @@ export default async function KaryaDetailPage({ params }: PageProps<"/dashboard/
         <ArrowLeft className="size-3.5" /> Kembali ke daftar naskah
       </Link>
 
-      <header className="card mb-6 p-6 sm:p-8">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-4">
-          <div className="flex flex-wrap items-center gap-2.5">
-            <StatusBadge status={s.status} />
-            <span className="font-mono text-xs text-muted">KODE NASKAH: SMPL-2026-0{s.id}</span>
+      <header className="card mb-6 overflow-hidden">
+        {s.cover_image && (
+          <img src={s.cover_image} alt={s.judul} className="h-56 w-full object-cover sm:h-64" />
+        )}
+        <div className="p-6 sm:p-8">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-4">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <StatusBadge status={s.status} />
+              {s.topik && (
+                <span className="rounded bg-forest-50 px-2.5 py-0.5 font-mono text-xs font-semibold text-forest-800 ring-1 ring-forest-200">
+                  {s.topik}
+                </span>
+              )}
+              <span className="inline-flex items-center gap-1 rounded bg-paper px-2.5 py-0.5 font-mono text-xs text-muted">
+                {s.visibilitas === "privat" ? <Lock className="size-3" /> : <Globe className="size-3" />}
+                {s.visibilitas === "privat" ? "Privat" : "Publik"}
+              </span>
+              <span className="font-mono text-xs text-muted">SMPL-2026-0{s.id}</span>
+            </div>
+            <span className="font-mono text-xs font-semibold text-forest-800">{ev?.volume}</span>
           </div>
-          <span className="font-mono text-xs font-semibold text-forest-800">{ev?.volume}</span>
-        </div>
 
-        <h1 className="mt-4 max-w-4xl text-2xl font-semibold leading-snug text-forest-950 sm:text-3xl">{s.judul}</h1>
-        <p className="mt-2 text-xs text-muted">
-          Periode: <strong className="text-ink">{ev?.nama}</strong> · Tanggal Unggah {formatDate(s.submitted_at)}
-        </p>
+          <h1 className="mt-4 max-w-4xl text-2xl font-semibold leading-snug text-forest-950 sm:text-3xl">{s.judul}</h1>
+          {s.subjudul && <p className="mt-1.5 text-base text-muted">{s.subjudul}</p>}
+          <p className="mt-2 text-xs text-muted">
+            Periode: <strong className="text-ink">{ev?.nama}</strong> · Tanggal {formatDate(s.submitted_at)}
+            {s.prodi ? ` · ${s.prodi}` : ""}
+          </p>
 
-        <div className="mt-4 flex flex-wrap gap-1.5">
-          {s.kata_kunci.split(",").map((k) => (
-            <span
-              key={k}
-              className="rounded border border-line bg-paper px-2.5 py-1 font-mono text-xs text-forest-900"
-            >
-              #{k.trim()}
-            </span>
-          ))}
+          {s.kata_kunci && (
+            <div className="mt-4 flex flex-wrap gap-1.5">
+              {s.kata_kunci.split(",").filter(Boolean).map((k) => (
+                <span
+                  key={k}
+                  className="rounded border border-line bg-paper px-2.5 py-1 font-mono text-xs text-forest-900"
+                >
+                  #{k.trim()}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </header>
 
       <div className="grid gap-6 xl:grid-cols-3">
         <div className="space-y-6 xl:col-span-2">
+          {s.status === "draft" && (
+            <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-gold-400 bg-gold-50 p-5">
+              <div>
+                <p className="text-sm font-bold text-forest-950">Naskah Ini Masih Berstatus Draft</p>
+                <p className="mt-0.5 text-xs text-muted">
+                  Anda dapat memperbarui dokumen atau isi naskah lalu mengajukan publikasi ke Editor.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Link href={`/dashboard/submit?edit=${s.id}`} className="btn btn-primary">
+                  <PenLine className="size-4" /> Edit Draft &amp; Ajukan
+                </Link>
+                <DeleteSubmissionButton submissionId={s.id} label="Hapus Draft" redirectTo="/dashboard/karya" />
+              </div>
+            </section>
+          )}
+          {s.status === "revisi" && <RevisionUploadBox submissionId={s.id} />}
           {announced && s.skor_akhir ? (
             <section className="border border-forest-800 bg-forest-950 p-6 text-white sm:p-8">
               <div className="grid gap-6 sm:grid-cols-[auto_1fr] sm:items-center">
@@ -74,7 +112,7 @@ export default async function KaryaDetailPage({ params }: PageProps<"/dashboard/
                   <span className="font-mono text-[10px] uppercase tracking-wider text-forest-200">Skor Akhir</span>
                 </div>
                 <div>
-                  <p className="font-mono text-xs uppercase tracking-wider text-gold-300">Keputusan Redaksi</p>
+                  <p className="font-mono text-xs uppercase tracking-wider text-gold-300">Keputusan Editor</p>
                   <p className="mt-1 font-display text-2xl font-semibold">
                     Status Naskah: {STATUS_META[s.status].label}
                   </p>
@@ -122,9 +160,17 @@ export default async function KaryaDetailPage({ params }: PageProps<"/dashboard/
             </SectionCard>
           )}
 
-          <SectionCard title="Abstrak">
+          <SectionCard title="Deskripsi Singkat / Abstrak">
             <p className="p-5 text-sm leading-relaxed text-ink/85 sm:p-6">{s.abstrak}</p>
           </SectionCard>
+
+          {s.isi_essay && (
+            <SectionCard title="Struktur &amp; Isi Naskah">
+              <div className="p-5 sm:p-6">
+                <EssayContentView isiEssay={s.isi_essay} jenisRiset={s.jenis_riset} />
+              </div>
+            </SectionCard>
+          )}
 
           <SectionCard title="Berkas Naskah Terunggah" description="Daftar file PDF naskah dan kelengkapan">
             <ul className="divide-y divide-line">

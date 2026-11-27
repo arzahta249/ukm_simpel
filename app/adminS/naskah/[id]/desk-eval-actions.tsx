@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { CheckCircle2, Loader2, Send, XCircle } from "lucide-react";
-import type { SubmissionStatus } from "@/lib/data";
+import { STATUS_META, type SubmissionStatus } from "@/lib/data";
 import { deskEvaluationAction } from "@/app/actions";
 
 export function DeskEvaluationActions({
@@ -21,7 +21,7 @@ export function DeskEvaluationActions({
   });
   const [catatan, setCatatan] = useState("");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<null | "lolos" | "tidak_lolos">(null);
+  const [result, setResult] = useState<null | "desk_review" | "tidak_lolos">(null);
 
   const allChecked = checks.berkas && checks.orisinalitas && checks.format;
 
@@ -29,7 +29,7 @@ export function DeskEvaluationActions({
     setLoading(true);
     await deskEvaluationAction(submissionId, decision, catatan);
     setLoading(false);
-    setResult(decision === "desk_review" ? "lolos" : "tidak_lolos");
+    setResult(decision);
     router.refresh();
   }
 
@@ -38,11 +38,13 @@ export function DeskEvaluationActions({
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-forest-950 px-5 py-4 text-white sm:px-6">
         <div>
           <p className="font-mono text-[10.5px] uppercase tracking-wider text-gold-300">
-            TAHAP 2 &amp; 3 ALUR ADMIN · DESK EVALUATION
+            TAHAP 2 &amp; 3 ALUR EDITOR · DESK EVALUATION
           </p>
           <h2 className="font-sans text-sm font-bold">Pemeriksaan Kelengkapan, Orisinalitas &amp; Format</h2>
         </div>
-        <span className="font-mono text-xs text-forest-200">ID #{submissionId} · Status: {initialStatus}</span>
+        <span className="font-mono text-xs text-forest-200">
+          ID #{submissionId} · Status: {STATUS_META[initialStatus].label}
+        </span>
       </header>
 
       <div className="space-y-4 p-5 sm:p-6">
@@ -54,7 +56,7 @@ export function DeskEvaluationActions({
           ].map((item) => (
             <label
               key={item.key}
-              className="flex cursor-pointer items-start gap-2.5 rounded-md border border-line bg-paper p-3 text-xs"
+              className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-line bg-paper p-3 text-xs"
             >
               <input
                 type="checkbox"
@@ -71,7 +73,7 @@ export function DeskEvaluationActions({
         </div>
 
         <div>
-          <label className="label">Catatan Redaksi (disimpan ke status_logs &amp; notifikasi penulis)</label>
+          <label className="label">Catatan Editor (disimpan ke status_logs &amp; notifikasi penulis)</label>
           <textarea
             rows={2}
             value={catatan}
@@ -97,21 +99,21 @@ export function DeskEvaluationActions({
             onClick={() => decide("desk_review")}
             className="btn btn-primary"
           >
-            {loading ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />} Lolos Desk Evaluation → Tugaskan Juri
+            {loading ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />} Lolos Desk Evaluation → Tugaskan Reviewer
           </button>
         </div>
 
         {result && (
           <div
-            className={`flex items-center gap-2.5 rounded-md border p-3.5 text-xs font-semibold ${
-              result === "lolos"
+            className={`flex items-center gap-2.5 rounded-xl border p-3.5 text-xs font-semibold ${
+              result === "desk_review"
                 ? "border-forest-300 bg-forest-50 text-forest-900"
                 : "border-red-300 bg-red-50 text-red-900"
             }`}
           >
             <Send className="size-4 shrink-0" />
-            {result === "lolos"
-              ? "Keputusan tersimpan di database: LOLOS Desk Evaluation. Silakan lanjutkan ke menu Penugasan Juri."
+            {result === "desk_review"
+              ? "Keputusan tersimpan di database: LOLOS Desk Evaluation. Silakan lanjutkan ke menu Tugaskan Reviewer/Juri."
               : "Keputusan tersimpan di database: TIDAK LOLOS dan log notifikasi penolakan telah dikirim ke penulis."}
           </div>
         )}

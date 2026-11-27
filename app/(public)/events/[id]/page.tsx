@@ -2,8 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight, BookMarked, CalendarDays, Check, FileText, Users } from "lucide-react";
 import { EventStatusBadge, StatusBadge } from "@/components/ui";
+import { formatEventPages } from "@/lib/data";
 import { readDb } from "@/lib/db";
-import { daysLeft, formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -23,15 +23,14 @@ export default async function EventDetailPage({ params }: PageProps<"/events/[id
 
   const cat = db.categories.find((c) => c.id === event.category_id);
   const crit = db.criteria.filter((c) => c.event_id === event.id);
-  const left = daysLeft(event.deadline);
   const relatedPapers = db.submissions.filter(
     (s) => s.event_id === event.id && (s.status === "lolos" || s.status === "juara"),
   );
 
   const stages = [
-    { t: "Batas akhir unggah naskah", d: formatDate(event.deadline) },
+    { t: "Unggah naskah & berkas PDF", d: "Terbuka tanpa batas hari unggah" },
     { t: "Pemeriksaan kelengkapan & Desk Evaluation", d: "3–5 hari kerja setelah naskah masuk" },
-    { t: "Telaah substansi oleh minimal 2 reviewer/juri", d: "7–14 hari kerja" },
+    { t: "Telaah substansi oleh tim reviewer/juri (maks. 4 orang)", d: "7–14 hari kerja" },
     { t: "Rekap nilai akhir & publikasi ke repositori", d: "Diumumkan pada dashboard & katalog" },
   ];
 
@@ -63,8 +62,8 @@ export default async function EventDetailPage({ params }: PageProps<"/events/[id
 
           <div className="mt-8 grid max-w-3xl grid-cols-2 border border-line-strong bg-paper sm:grid-cols-4">
             {[
-              { i: CalendarDays, l: "Tenggat Unggah", v: formatDate(event.deadline, { day: "numeric", month: "short", year: "numeric" }) },
-              { i: FileText, l: "Batas Halaman", v: `Maks. ${event.max_halaman} hlm` },
+              { i: CalendarDays, l: "Jadwal Unggah", v: event.status === "open" ? "Terbuka Fleksibel" : "Selesai" },
+              { i: FileText, l: "Batas Halaman", v: event.halaman_label ? formatEventPages(event, "halaman") : `Maks. ${event.max_halaman} hlm` },
               { i: Users, l: "Penulis / Tim", v: `Maks. ${event.max_anggota} orang` },
               { i: BookMarked, l: "Edisi Terbitan", v: event.volume },
             ].map(({ i: Icon, l, v }, idx) => (
@@ -152,10 +151,10 @@ export default async function EventDetailPage({ params }: PageProps<"/events/[id
             <div className="border-b border-line bg-forest-950 p-6 text-white">
               <p className="font-mono text-[11px] uppercase tracking-wider text-gold-300">Status Penerimaan</p>
               <p className="mt-1 font-display text-3xl font-semibold">
-                {event.status === "open" ? (left > 0 ? `${left} Hari Tersisa` : "Ditutup") : "Telah Terbit"}
+                {event.status === "open" ? "Sedang Dibuka" : "Telah Terbit"}
               </p>
               <p className="mt-1 font-mono text-xs text-forest-200/80">
-                Tenggat: {formatDate(event.deadline)}
+                {event.status === "open" ? "Unggah naskah kapan saja tanpa batas hari" : "Penerimaan naskah telah selesai"}
               </p>
             </div>
             <div className="space-y-3 p-6">

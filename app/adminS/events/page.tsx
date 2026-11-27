@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Eye, Plus } from "lucide-react";
 import { EventStatusBadge, PageHeader } from "@/components/ui";
+import { formatEventPages } from "@/lib/data";
 import { readDb } from "@/lib/db";
-import { daysLeft, formatShortDate } from "@/lib/utils";
 import { EventRowActions } from "./event-actions";
 
 export const metadata: Metadata = { title: "Periode & Event Publikasi" };
@@ -17,7 +17,7 @@ export default async function AdminEventsPage() {
       <PageHeader
         eyebrow="TAHAP 1 ALUR ADMIN · TABEL EVENTS &amp; CRITERIA"
         title="Periode &amp; Event Penerimaan KTI"
-        description="Buat dan kelola periode penerimaan karya tulis ilmiah: tema terbitan, deadline, batas halaman & penulis, serta kriteria penilaian."
+        description="Buat dan kelola periode penerimaan karya tulis ilmiah: tema terbitan, batas halaman & penulis, serta kriteria penilaian."
         actions={
           <Link href="/adminS/events/baru" className="btn btn-primary">
             <Plus className="size-4" /> Buat Periode / Event
@@ -29,7 +29,6 @@ export default async function AdminEventsPage() {
         {db.events.map((e) => {
           const crit = db.criteria.filter((c) => c.event_id === e.id);
           const cat = db.categories.find((c) => c.id === e.category_id);
-          const left = daysLeft(e.deadline);
           return (
             <article key={e.id} className="card overflow-hidden">
               <div className="p-5 sm:p-6">
@@ -44,12 +43,11 @@ export default async function AdminEventsPage() {
                 <p className="mt-1 text-xs text-muted">Tema: {e.tema}</p>
               </div>
 
-              <div className="grid grid-cols-4 border-y border-line bg-paper text-center font-mono">
+              <div className="grid grid-cols-3 border-y border-line bg-paper text-center font-mono">
                 {[
                   { v: e.peserta, l: "Naskah" },
-                  { v: `${e.max_halaman} hlm`, l: "Maks. Hlm" },
+                  { v: formatEventPages(e, "hlm"), l: "Halaman" },
                   { v: `${e.max_anggota} org`, l: "Maks. Penulis" },
-                  { v: left > 0 ? `${left} hr` : "Selesai", l: "Sisa Waktu" },
                 ].map(({ v, l }) => (
                   <div key={l} className="border-r border-line px-2 py-3 last:border-r-0">
                     <p className="text-sm font-bold text-forest-950">{v}</p>
@@ -75,7 +73,7 @@ export default async function AdminEventsPage() {
                 </div>
 
                 <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-4">
-                  <span className="font-mono text-xs text-muted">Tenggat: {formatShortDate(e.deadline)}</span>
+                  <span className="font-mono text-xs text-muted">Tanpa batas waktu unggah</span>
                   <div className="flex flex-wrap items-center gap-2">
                     <Link href={`/events/${e.id}`} className="btn btn-outline btn-sm">
                       <Eye className="size-3.5" /> Pratinjau

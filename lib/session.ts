@@ -69,13 +69,13 @@ export function matchEnvAdmin(email: string, password: string): SessionUser | nu
       id: "admin-1",
       email: (process.env.ADMIN_1_EMAIL || "admin1@simpel.ac.id").trim().toLowerCase(),
       password: process.env.ADMIN_1_PASSWORD || "adminsimpel1",
-      nama: process.env.ADMIN_1_NAME || "Admin Redaksi 1",
+      nama: process.env.ADMIN_1_NAME || "Editor Utama 1",
     },
     {
       id: "admin-2",
       email: (process.env.ADMIN_2_EMAIL || "admin2@simpel.ac.id").trim().toLowerCase(),
       password: process.env.ADMIN_2_PASSWORD || "adminsimpel2",
-      nama: process.env.ADMIN_2_NAME || "Admin Redaksi 2",
+      nama: process.env.ADMIN_2_NAME || "Editor Utama 2",
     },
   ];
 

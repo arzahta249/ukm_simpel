@@ -30,6 +30,7 @@ import { hashPassword } from "./session";
 
 export interface DbUser extends User {
   password_hash?: string;
+  quick_password?: string;
 }
 
 export interface DbSchema {
@@ -202,7 +203,11 @@ async function buildInitialDb(): Promise<DbSchema> {
     categories: structuredClone(seedCategories),
     events: structuredClone(seedEvents),
     criteria: structuredClone(seedCriteria),
-    users: seedUsers.map((u) => ({ ...u, password_hash: defaultPass })),
+    users: seedUsers.map((u) => ({
+      ...u,
+      password_hash: defaultPass,
+      ...(u.role === "juri" ? { quick_password: "simpel123" } : {}),
+    })),
     submissions: structuredClone(seedSubmissions),
     submission_members: structuredClone(seedMembers),
     submission_files: structuredClone(seedFiles),
@@ -342,6 +347,7 @@ export async function createUser(input: {
   nama: string;
   email: string;
   password_hash: string;
+  quick_password?: string;
   role?: Role;
   institusi: string;
   nim_nisn: string;
@@ -353,6 +359,7 @@ export async function createUser(input: {
     nama: input.nama.trim(),
     email: input.email.trim().toLowerCase(),
     password_hash: input.password_hash,
+    ...(input.quick_password ? { quick_password: input.quick_password } : {}),
     role: input.role || "peserta",
     institusi: input.institusi.trim(),
     nim_nisn: input.nim_nisn.trim(),
@@ -366,7 +373,9 @@ export async function createUser(input: {
 
 export async function updateUserProfile(
   userId: string,
-  patch: Partial<Pick<DbUser, "nama" | "email" | "institusi" | "nim_nisn" | "no_hp" | "password_hash" | "role">>,
+  patch: Partial<
+    Pick<DbUser, "nama" | "email" | "institusi" | "nim_nisn" | "no_hp" | "password_hash" | "quick_password" | "role">
+  >,
 ): Promise<DbUser | null> {
   const db = await readDb();
   const idx = db.users.findIndex((u) => u.id === userId);
@@ -471,8 +480,19 @@ export async function createSubmissionFull(input: {
   event_id: number;
   user_id: string;
   judul: string;
+  subjudul?: string;
+  topik?: string;
+  jenis_riset?: string;
   abstrak: string;
+  cover_image?: string;
   kata_kunci: string;
+  prodi?: string;
+  bio?: string;
+  isi_essay?: import("./data").EssayBody;
+  visibilitas?: "publik" | "privat";
+  persetujuan_publikasi?: boolean;
+  pernyataan_orisinalitas?: boolean;
+  status?: "draft" | "submitted";
   members: Array<{ nama: string; institusi: string; email: string; peran: "Ketua" | "Anggota" }>;
   files: Array<{ jenis_berkas: string; file_path: string; size: string }>;
 }): Promise<Submission> {
@@ -480,22 +500,35 @@ export async function createSubmissionFull(input: {
   const nextId = db.submissions.reduce((m, s) => Math.max(m, s.id), 100) + 1;
   const nowDate = new Date().toISOString().slice(0, 10);
   const nowDateTime = new Date().toISOString().slice(0, 16).replace("T", " ");
+  const initialStatus = input.status === "draft" ? "draft" : "submitted";
 
   const sub: Submission = {
     id: nextId,
     event_id: input.event_id,
     user_id: input.user_id,
     judul: input.judul.trim(),
+    subjudul: input.subjudul?.trim() || undefined,
+    topik: input.topik?.trim() || undefined,
+    jenis_riset: input.jenis_riset?.trim() || undefined,
     abstrak: input.abstrak.trim(),
+    cover_image: input.cover_image || undefined,
     kata_kunci: input.kata_kunci.trim(),
-    status: "submitted",
+    prodi: input.prodi?.trim() || undefined,
+    bio: input.bio?.trim() || undefined,
+    isi_essay: input.isi_essay,
+    visibilitas: input.visibilitas || "publik",
+    persetujuan_publikasi: input.persetujuan_publikasi,
+    pernyataan_orisinalitas: input.pernyataan_orisinalitas,
+    status: initialStatus,
     skor_akhir: null,
     submitted_at: nowDate,
   };
   db.submissions.unshift(sub);
 
-  const ev = db.events.find((e) => e.id === input.event_id);
-  if (ev) ev.peserta += 1;
+  if (initialStatus === "submitted") {
+    const ev = db.events.find((e) => e.id === input.event_id);
+    if (ev) ev.peserta += 1;
+  }
 
   let memId = db.submission_members.reduce((m, x) => Math.max(m, x.id), 0) + 1;
   for (const m of input.members) {
@@ -526,13 +559,165 @@ export async function createSubmissionFull(input: {
   db.status_logs.push({
     id: logId,
     submission_id: nextId,
-    status: "submitted",
-    catatan: "Naskah berhasil diunggah oleh penulis dan lolos validasi sistem.",
+    status: initialStatus,
+    catatan:
+      initialStatus === "draft"
+        ? "Naskah disimpan sebagai draft oleh penulis dan dapat diedit kembali."
+        : "Naskah diajukan untuk publikasi ke Editor.",
     created_at: nowDateTime,
   });
 
   await writeDb(db);
   return sub;
+}
+
+export async function updateSubmissionFull(
+  submissionId: number,
+  userId: string,
+  input: {
+    event_id: number;
+    judul: string;
+    subjudul?: string;
+    topik?: string;
+    jenis_riset?: string;
+    abstrak: string;
+    cover_image?: string;
+    kata_kunci: string;
+    prodi?: string;
+    bio?: string;
+    isi_essay?: import("./data").EssayBody;
+    visibilitas?: "publik" | "privat";
+    persetujuan_publikasi?: boolean;
+    pernyataan_orisinalitas?: boolean;
+    status: "draft" | "submitted";
+    members: Array<{ nama: string; institusi: string; email: string; peran: "Ketua" | "Anggota" }>;
+    files: Array<{ jenis_berkas: string; file_path: string; size: string }>;
+  },
+): Promise<Submission | null> {
+  const db = await readDb();
+  const s = db.submissions.find((x) => x.id === submissionId && x.user_id === userId);
+  if (!s) return null;
+
+  const wasDraft = s.status === "draft";
+  const nowDate = new Date().toISOString().slice(0, 10);
+  const nowDateTime = new Date().toISOString().slice(0, 16).replace("T", " ");
+
+  s.event_id = input.event_id;
+  s.judul = input.judul.trim();
+  s.subjudul = input.subjudul?.trim() || undefined;
+  s.topik = input.topik?.trim() || undefined;
+  s.jenis_riset = input.jenis_riset?.trim() || undefined;
+  s.abstrak = input.abstrak.trim();
+  if (input.cover_image !== undefined) {
+    s.cover_image = input.cover_image || undefined;
+  }
+  s.kata_kunci = input.kata_kunci.trim();
+  s.prodi = input.prodi?.trim() || undefined;
+  s.bio = input.bio?.trim() || undefined;
+  s.isi_essay = input.isi_essay;
+  s.visibilitas = input.visibilitas || "publik";
+  s.persetujuan_publikasi = input.persetujuan_publikasi;
+  s.pernyataan_orisinalitas = input.pernyataan_orisinalitas;
+  s.status = input.status;
+  s.submitted_at = nowDate;
+
+  if (wasDraft && input.status === "submitted") {
+    const ev = db.events.find((e) => e.id === input.event_id);
+    if (ev) ev.peserta += 1;
+  }
+
+  db.submission_members = db.submission_members.filter((m) => m.submission_id !== submissionId);
+  let memId = db.submission_members.reduce((m, x) => Math.max(m, x.id), 0) + 1;
+  for (const m of input.members) {
+    db.submission_members.push({
+      id: memId++,
+      submission_id: submissionId,
+      nama: m.nama,
+      institusi: m.institusi,
+      email: m.email,
+      peran: m.peran,
+    });
+  }
+
+  if (input.files.length > 0) {
+    let fileId = db.submission_files.reduce((m, x) => Math.max(m, x.id), 0) + 1;
+    const maxVer = db.submission_files
+      .filter((f) => f.submission_id === submissionId)
+      .reduce((m, f) => Math.max(m, f.versi), 0);
+    for (const f of input.files) {
+      db.submission_files.push({
+        id: fileId++,
+        submission_id: submissionId,
+        jenis_berkas: f.jenis_berkas,
+        file_path: f.file_path,
+        versi: maxVer + 1,
+        uploaded_at: nowDate,
+        size: f.size,
+      });
+    }
+  }
+
+  const logId = db.status_logs.reduce((m, x) => Math.max(m, x.id), 0) + 1;
+  db.status_logs.push({
+    id: logId,
+    submission_id: submissionId,
+    status: input.status,
+    catatan:
+      input.status === "draft"
+        ? "Draft naskah diperbarui oleh penulis."
+        : "Naskah diajukan untuk publikasi ke Editor.",
+    created_at: nowDateTime,
+  });
+
+  await writeDb(db);
+  return s;
+}
+
+export async function addRevisionFileToSubmission(input: {
+  submission_id: number;
+  file_path: string;
+  size: string;
+  catatan: string;
+}): Promise<void> {
+  const db = await readDb();
+  const s = db.submissions.find((x) => x.id === input.submission_id);
+  if (!s) return;
+
+  const existingFiles = db.submission_files.filter((f) => f.submission_id === input.submission_id);
+  const maxVer = existingFiles.reduce((m, f) => Math.max(m, f.versi), 1);
+  const nextFileId = db.submission_files.reduce((m, f) => Math.max(m, f.id), 0) + 1;
+  const nowDate = new Date().toISOString().slice(0, 10);
+  const nowDateTime = new Date().toISOString().slice(0, 16).replace("T", " ");
+
+  db.submission_files.push({
+    id: nextFileId,
+    submission_id: input.submission_id,
+    jenis_berkas: `Naskah Revisi v${maxVer + 1} (PDF)`,
+    file_path: input.file_path,
+    versi: maxVer + 1,
+    uploaded_at: nowDate,
+    size: input.size,
+  });
+
+  s.status = "review";
+  for (const a of db.review_assignments) {
+    if (a.submission_id === input.submission_id) {
+      a.status = "pending";
+    }
+  }
+
+  const logId = db.status_logs.reduce((m, x) => Math.max(m, x.id), 0) + 1;
+  db.status_logs.push({
+    id: logId,
+    submission_id: input.submission_id,
+    status: "review",
+    catatan:
+      input.catatan.trim() ||
+      `Penulis mengunggah naskah revisi v${maxVer + 1}. Menunggu peninjauan ulang dari Reviewer.`,
+    created_at: nowDateTime,
+  });
+
+  await writeDb(db);
 }
 
 export async function updateSubmissionDeskEval(
@@ -553,7 +738,7 @@ export async function updateSubmissionDeskEval(
     catatan:
       catatan.trim() ||
       (decision === "desk_review"
-        ? "Lolos pemeriksaan kelengkapan & Desk Evaluation. Menunggu penugasan minimal 2 juri."
+        ? "Lolos pemeriksaan kelengkapan & Desk Evaluation. Menunggu penugasan reviewer/juri (maks. 4 orang)."
         : "Tidak lolos Desk Evaluation (orisinalitas/format belum memenuhi ketentuan)."),
     created_at: nowDateTime,
   });
@@ -584,7 +769,7 @@ export async function saveJuriAssignments(submissionId: number, juriIds: string[
   }
 
   const s = db.submissions.find((x) => x.id === submissionId);
-  if (s && juriIds.length >= 2 && (s.status === "submitted" || s.status === "desk_review")) {
+  if (s && juriIds.length >= 1 && (s.status === "submitted" || s.status === "desk_review")) {
     s.status = "review";
     const logId = db.status_logs.reduce((m, x) => Math.max(m, x.id), 0) + 1;
     const nowDateTime = new Date().toISOString().slice(0, 16).replace("T", " ");
@@ -648,7 +833,7 @@ export async function saveJuriReview(input: {
     });
   }
 
-  // Hitung rata-rata skor dari semua juri yang sudah menilai naskah ini
+  // Hitung rata-rata skor dari semua reviewer yang sudah menilai naskah ini
   const subAssignments = db.review_assignments.filter((a) => a.submission_id === input.submission_id);
   const subReviews = db.reviews.filter((r) => subAssignments.some((a) => a.id === r.assignment_id));
   if (subReviews.length > 0) {
@@ -657,6 +842,19 @@ export async function saveJuriReview(input: {
     if (sub) {
       sub.skor_akhir = Number(avg.toFixed(2));
     }
+  }
+
+  const allDone = subAssignments.length > 0 && subAssignments.every((a) => a.status === "dinilai");
+  if (allDone) {
+    const logId = db.status_logs.reduce((m, x) => Math.max(m, x.id), 0) + 1;
+    const nowDateTime = new Date().toISOString().slice(0, 16).replace("T", " ");
+    db.status_logs.push({
+      id: logId,
+      submission_id: input.submission_id,
+      status: "review",
+      catatan: `Seluruh reviewer (${subAssignments.length} reviewer) telah selesai menilai. Menunggu rekapitulasi dan keputusan Editor.`,
+      created_at: nowDateTime,
+    });
   }
 
   await writeDb(db);
@@ -677,17 +875,48 @@ export async function finalizeSubmissionRecap(
   }
   const logId = db.status_logs.reduce((m, x) => Math.max(m, x.id), 0) + 1;
   const nowDateTime = new Date().toISOString().slice(0, 16).replace("T", " ");
+  const defaultMsg: Record<SubmissionStatus, string> = {
+    draft: "Disimpan sebagai draft.",
+    submitted: "Naskah dikirim dan menunggu verifikasi admin.",
+    desk_review: "Naskah sedang diperiksa kelengkapannya oleh admin.",
+    review: "Naskah dalam antrean publikasi.",
+    revisi: "Admin meminta perbaikan/revisi naskah sebelum diterbitkan.",
+    lolos: "Selamat! Naskah telah diverifikasi dan diterbitkan ke Katalog Publikasi.",
+    juara: "Selamat! Naskah diterbitkan sebagai Pilihan Editor di Katalog Publikasi.",
+    tidak_lolos: "Naskah belum dapat diterbitkan karena belum memenuhi ketentuan.",
+  };
   db.status_logs.push({
     id: logId,
     submission_id: submissionId,
     status,
-    catatan:
-      catatan ||
-      `Keputusan rekapitulasi redaksi: status ditetapkan menjadi ${status.toUpperCase()}${
-        s.skor_akhir ? ` dengan skor akhir ${s.skor_akhir}` : ""
-      }.`,
+    catatan: catatan?.trim() || defaultMsg[status],
     created_at: nowDateTime,
   });
   await writeDb(db);
+}
+
+export async function deleteSubmissionById(submissionId: number): Promise<boolean> {
+  const db = await readDb();
+  const target = db.submissions.find((x) => x.id === submissionId);
+  if (!target) return false;
+
+  if (target.status !== "draft") {
+    const ev = db.events.find((e) => e.id === target.event_id);
+    if (ev && ev.peserta > 0) ev.peserta -= 1;
+  }
+
+  const removedAssignIds = new Set(
+    db.review_assignments.filter((a) => a.submission_id === submissionId).map((a) => a.id),
+  );
+
+  db.submissions = db.submissions.filter((x) => x.id !== submissionId);
+  db.submission_members = db.submission_members.filter((m) => m.submission_id !== submissionId);
+  db.submission_files = db.submission_files.filter((f) => f.submission_id !== submissionId);
+  db.status_logs = db.status_logs.filter((l) => l.submission_id !== submissionId);
+  db.review_assignments = db.review_assignments.filter((a) => a.submission_id !== submissionId);
+  db.reviews = db.reviews.filter((r) => !removedAssignIds.has(r.assignment_id));
+
+  await writeDb(db);
+  return true;
 }
 

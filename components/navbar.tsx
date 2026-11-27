@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowUpRight, FileUp, Menu, X } from "lucide-react";
 import { Logo } from "./logo";
 import { cn } from "@/lib/utils";
@@ -17,7 +17,12 @@ const links = [
 
 export function Navbar() {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <header className="sticky top-0 z-50 px-3 pt-3 sm:px-4">
@@ -26,7 +31,7 @@ export function Navbar() {
 
         <ul className="hidden items-center gap-1 lg:flex">
           {links.map((l) => {
-            const active = l.href === pathname || (l.href === "/events" && pathname.startsWith("/events"));
+            const active = mounted && (l.href === pathname || (l.href === "/events" && pathname.startsWith("/events")));
             return (
               <li key={l.href}>
                 <Link

@@ -11,6 +11,7 @@ import {
   Users,
 } from "lucide-react";
 import { Avatar, EventStatusBadge, PageHeader, ProgressBar, SectionCard, StatCard, StatusBadge } from "@/components/ui";
+import { formatEventPages } from "@/lib/data";
 import { readDb } from "@/lib/db";
 import { formatShortDate } from "@/lib/utils";
 
@@ -42,7 +43,7 @@ export default async function AdminDashboard() {
       step: "03",
       icon: Gavel,
       label: "Penilaian Juri",
-      desc: "Min. 2 juri / naskah",
+      desc: "Maks. 4 reviewer / naskah",
       value: count(["review"]),
       href: "/adminS/penugasan",
     },
@@ -69,9 +70,9 @@ export default async function AdminDashboard() {
   return (
     <>
       <PageHeader
-        eyebrow="PANEL REDAKSI · /adminS"
+        eyebrow="PANEL EDITOR · /adminS"
         title="Ringkasan Kurasi &amp; Publikasi KTI"
-        description="Kelola periode penerimaan naskah, lakukan desk evaluation, tugaskan minimal 2 juri/reviewer per naskah, dan terbitkan karya tulis ilmiah."
+        description="Kelola periode penerimaan naskah, lakukan desk evaluation, tugaskan hingga maksimal 4 reviewer/juri per naskah, dan terbitkan karya tulis ilmiah."
         actions={
           <>
             <Link href="/adminS/naskah" className="btn btn-outline">
@@ -130,7 +131,7 @@ export default async function AdminDashboard() {
             <li key={p.label}>
               <Link
                 href={p.href}
-                className="group flex h-full flex-col justify-between rounded-md border border-line bg-paper/60 p-4 transition-colors hover:border-forest-700 hover:bg-forest-50/40"
+                className="group flex h-full flex-col justify-between rounded-xl border border-line bg-paper/60 p-4 transition-colors hover:border-forest-700 hover:bg-forest-50/40"
               >
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-xs font-bold text-forest-700">TAHAP {p.step}</span>
@@ -254,7 +255,9 @@ export default async function AdminDashboard() {
                   </div>
                   <div className="mt-2 flex items-center justify-between">
                     <EventStatusBadge status={e.status} className="!px-2 !py-0.5 !text-[10px]" />
-                    <span className="font-mono text-[11px] text-muted">Tenggat {formatShortDate(e.deadline)}</span>
+                    <span className="font-mono text-[11px] text-muted">
+                      {e.halaman_label ? formatEventPages(e, "hlm") : `Maks. ${e.max_halaman} hlm`}
+                    </span>
                   </div>
                 </li>
               ))}

@@ -604,6 +604,87 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* ----- Rich Text Editor & Tampilan Konten Essay ----- */
+.rich-content {
+  color: var(--color-ink);
+  font-size: 0.94rem;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+}
+.rich-content:empty::before {
+  content: attr(data-placeholder);
+  color: var(--color-muted);
+  opacity: 0.7;
+  pointer-events: none;
+}
+.rich-content h2 {
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--color-forest-950);
+}
+.rich-content h3 {
+  margin-top: 1rem;
+  margin-bottom: 0.4rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-forest-900);
+}
+.rich-content p {
+  margin-bottom: 0.65rem;
+}
+.rich-content ul {
+  margin: 0.5rem 0 0.75rem 1.35rem;
+  list-style-type: disc;
+}
+.rich-content ol {
+  margin: 0.5rem 0 0.75rem 1.35rem;
+  list-style-type: decimal;
+}
+.rich-content li {
+  margin-bottom: 0.25rem;
+}
+.rich-content blockquote {
+  margin: 0.75rem 0;
+  border-left: 3px solid var(--color-gold-500);
+  background: var(--color-paper);
+  padding: 0.65rem 1rem;
+  border-radius: 0 0.65rem 0.65rem 0;
+  color: var(--color-muted);
+  font-style: italic;
+}
+.rich-content a {
+  color: var(--color-forest-700);
+  text-decoration: underline;
+  font-weight: 600;
+}
+.rich-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.85rem 0;
+  font-size: 0.85rem;
+}
+.rich-content th,
+.rich-content td {
+  border: 1px solid var(--color-line-strong);
+  padding: 0.5rem 0.65rem;
+  text-align: left;
+  vertical-align: top;
+}
+.rich-content th {
+  background: var(--color-paper);
+  font-weight: 700;
+  color: var(--color-forest-950);
+}
+.rich-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.75rem;
+  margin: 0.75rem 0;
+  border: 1px solid var(--color-line);
+}
+
 /* ----- Hormati preferensi "kurangi gerak" ----- */
 @media (prefers-reduced-motion: reduce) {
   *,

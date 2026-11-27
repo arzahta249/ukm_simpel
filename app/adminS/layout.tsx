@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { getSessionUser } from "@/lib/session";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminLayout({ children }: LayoutProps<"/adminS">) {
   const session = await getSessionUser();
   if (!session || session.role !== "admin") {

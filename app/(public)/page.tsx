@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { BookMascot } from "@/components/book-mascot";
 import { EventCard } from "@/components/event-card";
+import { PanduanFaqSection } from "@/components/panduan-faq";
 import { Reveal } from "@/components/reveal";
 import { StatusBadge } from "@/components/ui";
 import { readDb } from "@/lib/db";
@@ -28,39 +29,38 @@ import { formatShortDate } from "@/lib/utils";
 export const dynamic = "force-dynamic";
 
 const authorSteps = [
-  { icon: UserPlus, title: "Buat akun", desc: "Daftar dengan email aktif. Gratis dan hanya semenit." },
-  { icon: Search, title: "Pilih jenis & periode", desc: "Essay, makalah, artikel jurnal, dan lainnya. Pilih yang cocok." },
-  { icon: PenLine, title: "Isi data naskah", desc: "Judul, abstrak, kata kunci, dan siapa saja penulisnya." },
-  { icon: FileUp, title: "Unggah PDF", desc: "Sistem langsung mengecek format, ukuran, dan nama berkasmu.", badge: "Dicek otomatis" },
-  { icon: BadgeCheck, title: "Kirim ke redaksi", desc: "Cek ulang lalu kirim. Statusnya berubah jadi submitted." },
-  { icon: BellRing, title: "Pantau prosesnya", desc: "Lihat tiap tahap penilaian langsung dari dashboardmu." },
-  { icon: Award, title: "Terbit!", desc: "Naskah yang lolos tampil di katalog, lengkap dengan skor kurasi." },
+  { icon: UserPlus, title: "Buat akun", desc: "Daftar dengan email aktif. Profil otomatis terisi saat mengajukan naskah." },
+  { icon: PenLine, title: "1. Buat Naskah", desc: "Pilih Essay, Makalah, atau Artikel Jurnal (Riset) sesuai karyamu." },
+  { icon: BookOpen, title: "2. Simpan Draft", desc: "Simpan naskah kapan saja agar bisa diedit kembali." },
+  { icon: FileUp, title: "3. Ajukan Publikasi", desc: "Unggah PDF atau lengkapi struktur naskah lalu kirim ke Editor.", badge: "Mudah & cepat" },
+  { icon: ShieldCheck, title: "4. Review Naskah", desc: "Editor & reviewer memeriksa isi, metodologi, referensi, dan orisinalitas." },
+  { icon: Award, title: "5. Publikasi", desc: "Jika disetujui & publik, karya ilmiah tampil di halaman katalog." },
 ];
 
 const editorialFlow = [
-  { title: "Periode dibuka", detail: "Redaksi menetapkan tema, tenggat, batas halaman, dan bobot penilaian." },
-  { title: "Cek kelengkapan", detail: "Setiap naskah yang masuk diperiksa berkas dan administrasinya." },
-  { title: "Desk evaluation", detail: "Seleksi orisinalitas dan format. Yang belum sesuai langsung diberi kabar." },
-  { title: "Telaah oleh juri", detail: "Minimal 2 juri menilai tiap naskah per kriteria, lengkap dengan catatan." },
-  { title: "Rekap & terbit", detail: "Skor akhir dihitung adil, lalu naskah terbaik diterbitkan ke katalog." },
+  { title: "Buat Naskah", detail: "Penulis memilih Essay, Makalah, atau Artikel Jurnal Riset dan mengisi format yang sesuai." },
+  { title: "Simpan Draft", detail: "Naskah tersimpan aman sebagai draft dan bebas diedit ulang sebelum diajukan." },
+  { title: "Ajukan Publikasi", detail: "Penulis menyetujui ketentuan publikasi & orisinalitas lalu mengirim ke Editor." },
+  { title: "Review Naskah", detail: "Editor dan reviewer memeriksa isi, metodologi, daftar pustaka, dan orisinalitas." },
+  { title: "Publikasi!", detail: "Jika disetujui dengan visibilitas publik, karya ilmiah langsung tampil untuk pembaca." },
 ];
 
 const faqs = [
   {
-    q: "Ini lomba atau tempat publikasi?",
-    a: "Ini tempat publikasi. Kamu mengunggah naskah (essay, makalah, artikel jurnal, dan sejenisnya) untuk ditelaah redaksi UKM SIMPEL dan diterbitkan di repositori jika lolos kurasi.",
+    q: "Jenis naskah apa saja yang dapat diterbitkan?",
+    a: "Sistem mendukung 3 jenis naskah: Essay (format unggah PDF), Makalah Akademik, dan Artikel Jurnal (hasil riset dengan format IMRAD).",
   },
   {
-    q: "Format berkas apa yang diterima?",
-    a: "PDF dengan ukuran maksimal 5 MB, bernama NamaKetua_JudulSingkat.pdf tanpa spasi. Tambahkan juga surat pernyataan orisinalitas (PDF, maksimal 2 MB).",
+    q: "Bagaimana cara unggah naskahnya, apakah wajib PDF?",
+    a: "Kamu cukup mengunggah file PDF naskah (tanpa aturan penamaan kaku), dan/atau melengkapi ringkasan struktur Makalah atau Riset IMRAD lewat Rich Text Editor.",
   },
   {
-    q: "Bagaimana kalau berkasku gagal validasi?",
-    a: "Tenang, sistem langsung menjelaskan penyebabnya (format, ukuran, atau nama file). Perbaiki lalu unggah ulang sebelum tenggat.",
+    q: "Bolehkah menyimpan naskah sebelum selesai?",
+    a: "Boleh sekali! Klik Simpan Draft kapan saja. Draft akan tersimpan di menu Naskah Saya dan bisa kamu edit kembali sebelum diajukan.",
   },
   {
-    q: "Berapa penulis yang boleh dalam satu naskah?",
-    a: "Bisa individu atau tim. Batasnya tertera pada tiap periode penerimaan, umumnya 2–3 penulis.",
+    q: "Apa bedanya visibilitas Publik dan Privat?",
+    a: "Naskah Publik akan tampil di halaman Katalog Beranda setelah disetujui Editor, sedangkan Privat hanya tersimpan di arsip internal penulis dan editor.",
   },
 ];
 
@@ -69,7 +69,9 @@ const SPINES = ["bg-forest-700", "bg-gold-400", "bg-olive-500", "bg-forest-500"]
 export default async function HomePage() {
   const db = await readDb();
   const openEvents = db.events.filter((e) => e.status === "open");
-  const published = db.submissions.filter((s) => s.status === "lolos" || s.status === "juara");
+  const published = db.submissions.filter(
+    (s) => (s.status === "lolos" || s.status === "juara") && s.visibilitas !== "privat",
+  );
   const activeCats = db.categories.filter((c) => c.is_active);
   const sampleCriteria = db.criteria.filter((c) => c.event_id === (db.events[0]?.id ?? 1)).slice(0, 4);
   const catName = (id: number) => db.categories.find((c) => c.id === id)?.nama;
@@ -134,7 +136,7 @@ export default async function HomePage() {
               className="rise mt-6 max-w-xl text-base leading-relaxed text-muted sm:text-lg"
               style={{ animationDelay: "180ms" }}
             >
-              Unggah essay, makalah, atau artikel jurnalmu. Redaksi UKM SIMPEL membantu menelaahnya dengan adil, lalu
+              Unggah essay, makalah akademik, atau artikel jurnal risetmu. Tim Editor &amp; Reviewer UKM SIMPEL membantu menelaahnya dengan adil, lalu
               menerbitkannya di repositori Universitas Pancasakti Tegal.
             </p>
 
@@ -273,13 +275,17 @@ export default async function HomePage() {
                       <div className="flex flex-1 flex-col p-5 sm:p-6">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <span className="font-mono text-[11px] font-bold uppercase tracking-wide text-forest-700">
-                            {catName(ev?.category_id ?? 0) ?? "Naskah"} · {ev?.volume}
+                            {catName(ev?.category_id ?? 0) ?? "Karya Ilmiah"}
+                            {item.topik ? ` · ${item.topik}` : ""} · {ev?.volume}
                           </span>
                           <StatusBadge status={item.status} />
                         </div>
                         <h3 className="mt-3 text-xl font-semibold leading-snug text-forest-950 transition-colors group-hover:text-forest-700 sm:text-[1.35rem]">
                           {item.judul}
                         </h3>
+                        {item.subjudul && (
+                          <p className="mt-1 line-clamp-1 text-xs font-medium text-ink/75">{item.subjudul}</p>
+                        )}
                         <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-muted">{item.abstrak}</p>
                         <div className="mt-auto flex items-end justify-between gap-3 pt-5">
                           <div className="min-w-0 text-xs">
@@ -363,7 +369,7 @@ export default async function HomePage() {
             <p className="eyebrow justify-center">Cara kerja</p>
             <h2 className="mt-2 text-3xl font-semibold text-forest-950 sm:text-5xl">Tujuh langkah sampai terbit</h2>
             <p className="mt-3 text-sm leading-relaxed text-muted sm:text-base">
-              Semuanya dibuat sederhana. Kamu fokus menulis, sistem dan redaksi yang mengurus sisanya.
+              Semuanya dibuat sederhana. Kamu fokus menulis, sistem dan tim editor yang mengurus sisanya.
             </p>
           </Reveal>
 
@@ -405,7 +411,7 @@ export default async function HomePage() {
           <div className="mt-20 grid gap-10 lg:grid-cols-12">
             <Reveal className="lg:col-span-7">
               <p className="eyebrow">Di balik layar</p>
-              <h3 className="mt-2 text-2xl font-semibold text-forest-950 sm:text-4xl">Bagaimana redaksi menilai</h3>
+              <h3 className="mt-2 text-2xl font-semibold text-forest-950 sm:text-4xl">Bagaimana editor menilai</h3>
               <ol className="relative mt-8 space-y-6 border-l-2 border-dashed border-line-strong pl-8">
                 {editorialFlow.map((ef, i) => (
                   <li key={ef.title} className="relative">
@@ -452,52 +458,8 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ============================== FAQ ============================== */}
-      <section id="panduan" className="scroll-mt-24 border-t border-line bg-sheet/70 py-16 sm:py-24">
-        <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-12 lg:px-8">
-          <Reveal className="lg:col-span-5">
-            <p className="eyebrow">Panduan & FAQ</p>
-            <h2 className="mt-2 text-3xl font-semibold text-forest-950 sm:text-4xl">Ada yang masih bingung?</h2>
-            <p className="mt-3 text-sm leading-relaxed text-muted sm:text-base">
-              Cek daftar singkat ini sebelum mengunggah supaya naskahmu langsung lolos validasi.
-            </p>
-            <ul className="mt-6 space-y-3 rounded-2xl border border-line bg-paper/70 p-5 text-sm text-ink/85">
-              {[
-                "PDF, maksimal 5 MB untuk naskah utama",
-                "Nama file: NamaKetua_JudulSingkat.pdf",
-                "Sertakan surat pernyataan orisinalitas",
-                "Abstrak 30–300 kata, 3–6 kata kunci",
-              ].map((rule) => (
-                <li key={rule} className="flex items-start gap-2.5">
-                  <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-forest-700 text-white">
-                    <Check className="size-3" />
-                  </span>
-                  {rule}
-                </li>
-              ))}
-            </ul>
-          </Reveal>
-
-          <div className="space-y-3 lg:col-span-7">
-            {faqs.map((f, i) => (
-              <Reveal key={f.q} delay={i * 70}>
-                <details
-                  className="group rounded-2xl border border-line bg-sheet shadow-soft transition-colors open:border-forest-400 [&_summary::-webkit-details-marker]:hidden"
-                  open={i === 0}
-                >
-                  <summary className="flex cursor-pointer items-center justify-between gap-4 px-5 py-4 text-[15px] font-bold text-forest-950 sm:px-6 sm:py-5">
-                    {f.q}
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-forest-50 text-forest-800 transition-transform duration-300 group-open:rotate-45 group-open:bg-forest-800 group-open:text-white">
-                      <Plus className="size-4" />
-                    </span>
-                  </summary>
-                  <p className="px-5 pb-5 text-sm leading-relaxed text-muted sm:px-6">{f.a}</p>
-                </details>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* ============================== FAQ & KETENTUAN ============================== */}
+      <PanduanFaqSection faqs={faqs} />
 
       {/* ============================== CTA ============================== */}
       <section className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
