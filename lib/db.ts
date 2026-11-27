@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { Pool } from "pg";
 import {
@@ -196,6 +197,41 @@ CREATE TABLE IF NOT EXISTS review_scores (
 
 const DATA_DIR = path.join(process.cwd(), ".data");
 const DATA_FILE = path.join(DATA_DIR, "simpel-db.json");
+const TMP_FILE = path.join(os.tmpdir(), "simpel-db.json");
+
+const globalCache = globalThis as unknown as { __simpelDbCache?: DbSchema };
+
+function readLocalFileSafe(): DbSchema | null {
+  for (const file of [DATA_FILE, TMP_FILE]) {
+    try {
+      if (fs.existsSync(file)) {
+        const raw = fs.readFileSync(file, "utf8");
+        return JSON.parse(raw) as DbSchema;
+      }
+    } catch {
+      // Abaikan error baca file dan coba lokasi berikutnya
+    }
+  }
+  return null;
+}
+
+function writeLocalFileSafe(db: DbSchema): void {
+  const json = JSON.stringify(db, null, 2);
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    fs.writeFileSync(DATA_FILE, json, "utf8");
+    return;
+  } catch {
+    // Di lingkungan serverless (Vercel) direktori project bersifat read-only (EROFS)
+  }
+  try {
+    fs.writeFileSync(TMP_FILE, json, "utf8");
+  } catch {
+    // Tetap aman dengan cache memori & Postgres
+  }
+}
 
 async function buildInitialDb(): Promise<DbSchema> {
   const defaultPass = await hashPassword("simpel123");
@@ -278,35 +314,40 @@ export async function readDb(): Promise<DbSchema> {
       }
       const res = await pool.query("SELECT payload FROM simpel_store WHERE id = 1");
       if (res.rows.length > 0) {
-        return res.rows[0].payload as DbSchema;
+        const payload = res.rows[0].payload as DbSchema;
+        globalCache.__simpelDbCache = payload;
+        return payload;
       }
-      const initial = await buildInitialDb();
-      await pool.query("INSERT INTO simpel_store (id, payload) VALUES (1, $1)", [JSON.stringify(initial)]);
-      await syncRelationalTables(pool, initial);
-      return initial;
+      const seedFromLocal = readLocalFileSafe() ?? (await buildInitialDb());
+      await pool.query("INSERT INTO simpel_store (id, payload) VALUES (1, $1)", [JSON.stringify(seedFromLocal)]);
+      await syncRelationalTables(pool, seedFromLocal);
+      globalCache.__simpelDbCache = seedFromLocal;
+      return seedFromLocal;
     } catch (err) {
       console.error("[SIMPEL DB] Koneksi Postgres gagal, menggunakan penyimpanan lokal:", (err as Error).message);
       pgFailed = true;
     }
   }
 
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
+  if (globalCache.__simpelDbCache) {
+    return globalCache.__simpelDbCache;
   }
-  if (!fs.existsSync(DATA_FILE)) {
-    const initial = await buildInitialDb();
-    fs.writeFileSync(DATA_FILE, JSON.stringify(initial, null, 2), "utf8");
-    return initial;
+
+  const fromDisk = readLocalFileSafe();
+  if (fromDisk) {
+    globalCache.__simpelDbCache = fromDisk;
+    return fromDisk;
   }
-  const raw = fs.readFileSync(DATA_FILE, "utf8");
-  return JSON.parse(raw) as DbSchema;
+
+  const initial = await buildInitialDb();
+  globalCache.__simpelDbCache = initial;
+  writeLocalFileSafe(initial);
+  return initial;
 }
 
 export async function writeDb(db: DbSchema): Promise<void> {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
-  fs.writeFileSync(DATA_FILE, JSON.stringify(db, null, 2), "utf8");
+  globalCache.__simpelDbCache = db;
+  writeLocalFileSafe(db);
 
   const pool = getPool();
   if (pool && !pgFailed) {

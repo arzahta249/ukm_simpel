@@ -166,61 +166,69 @@ export async function loginAction(formData: FormData): Promise<{ ok: boolean; er
 }
 
 export async function registerAction(formData: FormData): Promise<{ ok: boolean; error?: string; redirectTo?: string }> {
-  const nama = String(formData.get("nama") ?? "").trim();
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const institusi = String(formData.get("institusi") ?? "").trim();
-  const nim_nisn = String(formData.get("nim_nisn") ?? "").trim();
-  const no_hp = String(formData.get("no_hp") ?? "").trim();
-  const password = String(formData.get("password") ?? "");
-  const confirm = String(formData.get("confirm") ?? "");
+  try {
+    const nama = String(formData.get("nama") ?? "").trim();
+    const email = String(formData.get("email") ?? "").trim().toLowerCase();
+    const institusi = String(formData.get("institusi") ?? "").trim();
+    const nim_nisn = String(formData.get("nim_nisn") ?? "").trim();
+    const no_hp = String(formData.get("no_hp") ?? "").trim();
+    const password = String(formData.get("password") ?? "");
+    const confirm = String(formData.get("confirm") ?? "");
 
-  if (!nama || !email || !institusi || !nim_nisn || !password) {
-    return { ok: false, error: "Seluruh kolom wajib diisi." };
+    if (!nama || !email || !institusi || !nim_nisn || !password) {
+      return { ok: false, error: "Seluruh kolom wajib diisi." };
+    }
+    if (password.length < 6) {
+      return { ok: false, error: "Kata sandi minimal 6 karakter." };
+    }
+    if (password !== confirm) {
+      return { ok: false, error: "Konfirmasi kata sandi tidak sama." };
+    }
+
+    const existing = await findUserByEmail(email);
+    if (existing) {
+      return { ok: false, error: "Email tersebut sudah terdaftar. Silakan masuk." };
+    }
+
+    const password_hash = await hashPassword(password);
+    const user = await createUser({
+      nama,
+      email,
+      password_hash,
+      role: "peserta",
+      institusi,
+      nim_nisn,
+      no_hp,
+    });
+
+    const sessionUser: SessionUser = {
+      id: user.id,
+      nama: user.nama,
+      email: user.email,
+      role: user.role,
+      institusi: user.institusi,
+      nim_nisn: user.nim_nisn,
+      no_hp: user.no_hp,
+    };
+
+    const token = await createSessionToken(sessionUser);
+    const store = await cookies();
+    store.set(SESSION_COOKIE_NAME, token, {
+      httpOnly: true,
+      path: "/",
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 7,
+    });
+
+    revalidatePath("/adminS/pengguna");
+    return { ok: true, redirectTo: "/dashboard" };
+  } catch (err) {
+    console.error("[registerAction]", err);
+    return {
+      ok: false,
+      error: "Terjadi gangguan server saat mendaftar. Pastikan koneksi database sudah terkonfigurasi dengan benar.",
+    };
   }
-  if (password.length < 6) {
-    return { ok: false, error: "Kata sandi minimal 6 karakter." };
-  }
-  if (password !== confirm) {
-    return { ok: false, error: "Konfirmasi kata sandi tidak sama." };
-  }
-
-  const existing = await findUserByEmail(email);
-  if (existing) {
-    return { ok: false, error: "Email tersebut sudah terdaftar. Silakan masuk." };
-  }
-
-  const password_hash = await hashPassword(password);
-  const user = await createUser({
-    nama,
-    email,
-    password_hash,
-    role: "peserta",
-    institusi,
-    nim_nisn,
-    no_hp,
-  });
-
-  const sessionUser: SessionUser = {
-    id: user.id,
-    nama: user.nama,
-    email: user.email,
-    role: user.role,
-    institusi: user.institusi,
-    nim_nisn: user.nim_nisn,
-    no_hp: user.no_hp,
-  };
-
-  const token = await createSessionToken(sessionUser);
-  const store = await cookies();
-  store.set(SESSION_COOKIE_NAME, token, {
-    httpOnly: true,
-    path: "/",
-    sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 7,
-  });
-
-  revalidatePath("/adminS/pengguna");
-  return { ok: true, redirectTo: "/dashboard" };
 }
 
 export async function logoutAction(): Promise<void> {
@@ -394,18 +402,22 @@ export async function submitManuscriptAction(formData: FormData): Promise<{
   let cover_image: string | undefined = String(formData.get("existing_cover") ?? "").trim() || undefined;
   const coverFile = formData.get("cover_file");
   if (coverFile && coverFile instanceof File && coverFile.size > 0) {
-    const coverDir = path.join(process.cwd(), "public", "uploads", "covers");
-    if (!fs.existsSync(coverDir)) {
-      fs.mkdirSync(coverDir, { recursive: true });
+    const buf = Buffer.from(await coverFile.arrayBuffer());
+    try {
+      const coverDir = path.join(process.cwd(), "public", "uploads", "covers");
+      if (!fs.existsSync(coverDir)) {
+        fs.mkdirSync(coverDir, { recursive: true });
+      }
+      const safeCover = `${Date.now()}_${coverFile.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+      fs.writeFileSync(path.join(coverDir, safeCover), buf);
+      cover_image = `/uploads/covers/${safeCover}`;
+    } catch {
+      // Fallback aman saat filesystem read-only (Vercel)
+      const mime = coverFile.type || "image/jpeg";
+      if (buf.length <= 1024 * 1024) {
+        cover_image = `data:${mime};base64,${buf.toString("base64")}`;
+      }
     }
-    const safeCover = `${Date.now()}_${coverFile.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-    fs.writeFileSync(path.join(coverDir, safeCover), Buffer.from(await coverFile.arrayBuffer()));
-    cover_image = `/uploads/covers/${safeCover}`;
-  }
-
-  const uploadDir = path.join(process.cwd(), "public", "uploads");
-  if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
   }
 
   const savedFiles: Array<{ jenis_berkas: string; file_path: string; size: string }> = [];
@@ -419,16 +431,24 @@ export async function submitManuscriptAction(formData: FormData): Promise<{
     const file = formData.get(s.key);
     if (file && file instanceof File && file.size > 0) {
       const safeName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-      const dest = path.join(uploadDir, safeName);
-      const buf = Buffer.from(await file.arrayBuffer());
-      fs.writeFileSync(dest, buf);
       const sizeStr =
         file.size >= 1024 * 1024
           ? `${(file.size / 1024 / 1024).toFixed(2)} MB`
           : `${Math.max(1, Math.round(file.size / 1024))} KB`;
+      let storedPath = `#uploaded:${safeName}`;
+      try {
+        const uploadDir = path.join(process.cwd(), "public", "uploads");
+        if (!fs.existsSync(uploadDir)) {
+          fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        fs.writeFileSync(path.join(uploadDir, safeName), Buffer.from(await file.arrayBuffer()));
+        storedPath = `/uploads/${safeName}`;
+      } catch {
+        // Filesystem read-only pada serverless hosting
+      }
       savedFiles.push({
         jenis_berkas: s.label,
-        file_path: `/uploads/${safeName}`,
+        file_path: storedPath,
         size: sizeStr,
       });
     }
@@ -519,12 +539,18 @@ export async function uploadRevisionAction(formData: FormData): Promise<{ ok: bo
     return { ok: false, error: "Ukuran berkas maksimal 5 MB." };
   }
 
-  const uploadDir = path.join(process.cwd(), "public", "uploads");
-  if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-  }
   const safeName = `${Date.now()}_rev_${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-  fs.writeFileSync(path.join(uploadDir, safeName), Buffer.from(await file.arrayBuffer()));
+  let storedPath = `#uploaded:${safeName}`;
+  try {
+    const uploadDir = path.join(process.cwd(), "public", "uploads");
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    fs.writeFileSync(path.join(uploadDir, safeName), Buffer.from(await file.arrayBuffer()));
+    storedPath = `/uploads/${safeName}`;
+  } catch {
+    // Filesystem read-only pada serverless hosting
+  }
 
   const sizeStr =
     file.size >= 1024 * 1024
@@ -533,7 +559,7 @@ export async function uploadRevisionAction(formData: FormData): Promise<{ ok: bo
 
   await addRevisionFileToSubmission({
     submission_id: submissionId,
-    file_path: `/uploads/${safeName}`,
+    file_path: storedPath,
     size: sizeStr,
     catatan,
   });
